@@ -94,99 +94,38 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="dashboard-page">
       {/* Header Profile Area */}
-      <div style={{
-        padding: '24px 20px 16px 20px',
-        background: 'linear-gradient(to bottom, rgba(255, 122, 0, 0.15), transparent)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} onClick={onViewProfile}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--accent-orange)'
-          }}>
+      <div className="dashboard-header">
+        <div className="dashboard-profile" onClick={onViewProfile}>
+          <div className="dashboard-avatar">
             <User size={22} />
           </div>
           <div>
-            <span style={{ fontSize: '12px', color: 'var(--color-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ciao,</span>
-            <span style={{ fontSize: '16px', fontWeight: '700', fontFamily: 'var(--font-family-title)' }}>
+            <span className="dashboard-greeting">Ciao,</span>
+            <span className="dashboard-username">
               {userProfile?.full_name || userProfile?.username || 'Atleta'}
             </span>
           </div>
         </div>
 
-        <button 
-          onClick={onLogout}
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-secondary)',
-            cursor: 'pointer'
-          }}
-          title="Esci"
-        >
+        <button className="dashboard-logout-button" onClick={onLogout} title="Esci">
           <LogOut size={18} />
         </button>
       </div>
 
       {/* Segmented Controls Tab */}
-      <div style={{ padding: '0 20px', marginBottom: '20px' }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '12px',
-          padding: '4px',
-          display: 'flex'
-        }}>
+      <div className="dashboard-tabs">
+        <div className="dashboard-tab-group">
           <button
             onClick={() => setActiveTab('plans')}
-            style={{
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === 'plans' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'plans' ? 'var(--accent-orange)' : 'var(--color-secondary)',
-              fontWeight: '600',
-              fontFamily: 'var(--font-family-title)',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)'
-            }}
+            className={`dashboard-tab ${activeTab === 'plans' ? 'dashboard-tab--active' : 'dashboard-tab--inactive'}`}
           >
             Le mie Schede
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            style={{
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === 'history' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'history' ? 'var(--accent-orange)' : 'var(--color-secondary)',
-              fontWeight: '600',
-              fontFamily: 'var(--font-family-title)',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)'
-            }}
+            className={`dashboard-tab ${activeTab === 'history' ? 'dashboard-tab--active' : 'dashboard-tab--inactive'}`}
           >
             Cronologia
           </button>
@@ -194,99 +133,71 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 80px 20px' }}>
+      <div className="dashboard-content">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-secondary)' }}>
-            <Dumbbell size={28} className="pulse-effect" style={{ margin: '0 auto 12px auto', display: 'block', color: 'var(--accent-orange)' }} />
+          <div className="dashboard-loading">
+            <Dumbbell size={28} className="pulse-effect dashboard-loading-icon" />
             Caricamento in corso...
           </div>
         ) : activeTab === 'plans' ? (
           <>
             {workoutPlans.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '48px 24px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderRadius: '24px',
-                border: '1px dashed var(--border-color)',
-                marginTop: '10px'
-              }}>
-                <Dumbbell size={36} style={{ color: 'var(--color-muted)', marginBottom: '16px' }} />
-                <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600' }}>Nessuna scheda creata</h3>
-                <p style={{ color: 'var(--color-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-                  Crea la tua prima scheda per organizzare gli allenamenti e tracciare i progressi.
-                </p>
-                <button className="btn-primary" onClick={onCreateWorkout} style={{ margin: '0 auto', maxWidth: '200px' }}>
+              <div className="dashboard-empty-card">
+                <Dumbbell size={36} className="dashboard-loading-icon" />
+                <h3>Nessuna scheda creata</h3>
+                <p>Crea la tua prima scheda per organizzare gli allenamenti e tracciare i progressi.</p>
+                <button className="btn-primary dashboard-empty-action" onClick={onCreateWorkout}>
                   <Plus size={18} /> Nuova Scheda
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="dashboard-plan-list">
                 {workoutPlans.map(plan => (
                   <div 
                     key={plan.id} 
-                    className="glass-panel" 
+                    className="glass-panel dashboard-card" 
                     onClick={() => chooseDay(plan)}
-                    style={{
-                      padding: '20px',
-                      cursor: 'pointer',
-                      borderLeft: '4px solid var(--accent-orange)'
-                    }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: '700' }}>{plan.name}</h3>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); onEditWorkout(plan.id); }}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer', padding: '4px' }}
-                        title="Modifica scheda"
-                      ><Pencil size={16} /></button>
-                      <button 
-                        onClick={(e) => handleShare(plan.id, e)}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer', padding: '4px' }}
-                        title="Crea link condivisibile"
-                      ><Share2 size={16} /></button>
-                      <button 
-                        onClick={(e) => handleDelete(plan.id, e)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--color-muted)',
-                          cursor: 'pointer',
-                          padding: '4px'
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                    <div className="dashboard-card-header">
+                      <div className="dashboard-card-actions">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); onEditWorkout(plan.id); }}
+                          className="icon-button"
+                          title="Modifica scheda"
+                        ><Pencil size={16} /></button>
+                        <button 
+                          onClick={(e) => handleShare(plan.id, e)}
+                          className="icon-button"
+                          title="Crea link condivisibile"
+                        ><Share2 size={16} /></button>
+                        <button 
+                          onClick={(e) => handleDelete(plan.id, e)}
+                          className="icon-button icon-button--muted"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <h3 className="dashboard-card-title">{plan.name}</h3>
                     </div>
 
                     {plan.description && (
-                      <p style={{ color: 'var(--color-secondary)', fontSize: '13px', marginBottom: '16px', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <p className="dashboard-card-description">
                         {plan.description}
                       </p>
                     )}
 
                     {(plan.days || []).length > 0 && (
-                      <p style={{ color: 'var(--color-secondary)', fontSize: '12px', marginBottom: '12px' }}>
+                      <p className="dashboard-card-days">
                         {(plan.days || []).length} {(plan.days || []).length === 1 ? 'giorno' : 'giorni'}: {(plan.days || []).map(day => day.name).join(' · ')}
                       </p>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--color-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div className="dashboard-plan-meta">
+                      <span className="dashboard-plan-date">
                         <Calendar size={12} />
                         {new Date(plan.created_at).toLocaleDateString('it-IT')}
                       </span>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: 'rgba(255, 122, 0, 0.1)',
-                        color: 'var(--accent-orange)',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        fontSize: '13px',
-                        fontWeight: '700'
-                      }}>
+                      <div className="dashboard-badge">
                         <Play size={12} fill="currentColor" />
                         Inizia
                       </div>
@@ -295,18 +206,8 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                 ))}
 
                 <button 
-                  className="btn-primary" 
-                  onClick={onCreateWorkout} 
-                  style={{
-                    position: 'fixed',
-                    bottom: '20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 'calc(100% - 40px)',
-                    maxWidth: '400px',
-                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
-                    zIndex: 99
-                  }}
+                  className="btn-primary dashboard-fixed-action" 
+                  onClick={onCreateWorkout}
                 >
                   <Plus size={20} /> Crea Nuova Scheda
                 </button>
@@ -314,38 +215,29 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
             )}
           </>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="dashboard-history-list">
             {history.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '48px 24px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderRadius: '24px',
-                border: '1px dashed var(--border-color)',
-                marginTop: '10px'
-              }}>
-                <Calendar size={36} style={{ color: 'var(--color-muted)', marginBottom: '16px' }} />
-                <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600' }}>Ancora nessun allenamento</h3>
-                <p style={{ color: 'var(--color-secondary)', fontSize: '14px' }}>
-                  Gli allenamenti che completi verranno mostrati qui con statistiche e date.
-                </p>
+              <div className="dashboard-empty-card">
+                <Calendar size={36} className="dashboard-loading-icon" />
+                <h3>Ancora nessun allenamento</h3>
+                <p>Gli allenamenti che completi verranno mostrati qui con statistiche e date.</p>
               </div>
             ) : (
               history.map(log => (
-                <div key={log.id} className="glass-panel" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={log.id} className="glass-panel dashboard-history-card">
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
+                    <h4 className="dashboard-history-summary">
                       {log.workout_plan?.name || 'Allenamento Libero'}
                     </h4>
-                    <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: 'var(--color-secondary)' }}>
+                    <div className="dashboard-history-meta">
                       <span>{formatDate(log.started_at)}</span>
                       <span>•</span>
-                      <span style={{ color: 'var(--accent-green)', fontWeight: '600' }}>
+                      <span className="dashboard-history-duration">
                         {getDuration(log.started_at, log.completed_at)}
                       </span>
                     </div>
                   </div>
-                  <ChevronRight size={16} style={{ color: 'var(--color-muted)' }} />
+                  <ChevronRight size={16} className="icon-muted" />
                 </div>
               ))
             )}
@@ -353,13 +245,17 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
         )}
       </div>
       {planToStart && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 300, background: 'var(--bg-primary)', display: 'flex' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '32px 20px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ fontSize: '20px', marginBottom: '6px' }}>{planToStart.name}</h2>
-            {planToStart.description && <p style={{ color: 'var(--color-secondary)', fontSize: '13px', marginBottom: '18px' }}>{planToStart.description}</p>}
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '16px' }}>
+        <div className="dashboard-modal-overlay">
+          <div className="dashboard-modal-panel" onClick={e => e.stopPropagation()}>
+            <h2 className="dashboard-modal-title">{planToStart.name}</h2>
+            {planToStart.description && <p className="dashboard-modal-description">{planToStart.description}</p>}
+            <div className="dashboard-modal-day-tabs">
               {planToStart.days.map(day => (
-                <button key={day.id} onClick={() => setSelectedDayId(day.id)} style={{ flex: '0 0 auto', border: `1px solid ${selectedDayId === day.id ? 'var(--accent-orange)' : 'var(--border-color)'}`, background: selectedDayId === day.id ? 'rgba(255,122,0,.14)' : 'rgba(255,255,255,.03)', color: selectedDayId === day.id ? 'var(--accent-orange)' : 'var(--color-secondary)', padding: '9px 12px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700' }}>
+                <button
+                  key={day.id}
+                  onClick={() => setSelectedDayId(day.id)}
+                  className={`dashboard-modal-day-pill ${selectedDayId === day.id ? 'dashboard-modal-day-pill--active' : ''}`}
+                >
                   {day.name}
                 </button>
               ))}
@@ -367,14 +263,19 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
             {(() => {
               const day = planToStart.days.find(item => item.id === selectedDayId) || planToStart.days[0];
               return <>
-                <h3 style={{ fontSize: '14px', marginBottom: '10px' }}>Esercizi da fare</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto', marginBottom: '16px', minHeight: 0 }}>
-                  {day.exercises.map((exercise, index) => <div key={exercise.id} style={{ padding: '10px 12px', background: 'rgba(255,255,255,.03)', borderRadius: '10px', fontSize: '13px' }}><strong>{index + 1}. {exercise.name}</strong><span style={{ color: 'var(--color-secondary)', marginLeft: '8px' }}>{exercise.sets} × {exercise.reps}</span></div>)}
+                <h3 className="dashboard-modal-subtitle">Esercizi da fare</h3>
+                <div className="dashboard-modal-exercise-list">
+                  {day.exercises.map((exercise, index) => (
+                    <div key={exercise.id} className="dashboard-exercise-item">
+                      <strong>{index + 1}. {exercise.name}</strong>
+                      <span>{exercise.sets} × {exercise.reps}</span>
+                    </div>
+                  ))}
                 </div>
                 <button className="btn-primary" onClick={() => onStartWorkout(planToStart.id, day.id)}><Play size={16} fill="currentColor" /> Avvia {day.name}</button>
               </>;
             })()}
-            <button onClick={() => setPlanToStart(null)} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--color-secondary)', padding: '16px', cursor: 'pointer' }}>Chiudi</button>
+            <button className="dashboard-modal-close" onClick={() => setPlanToStart(null)}>Chiudi</button>
           </div>
         </div>
       )}

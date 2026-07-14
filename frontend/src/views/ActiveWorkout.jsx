@@ -4,11 +4,13 @@ import { Check, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Play, Ref
 
 function Stepper({ value, onChange, min = 0, placeholder }) {
   const change = (next) => onChange(Math.max(min, next));
-  return <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-    <button type="button" className="stepper-button" onClick={() => change((Number(value) || 0) - 1)} style={{ width: '30px', height: '30px', borderRadius: '10px', background: 'rgba(255,255,255,.08)', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>−</button>
-    <input type="number" placeholder={placeholder} style={{ minHeight: '34px', padding: '6px 8px', textAlign: 'center', fontSize: '14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', color: 'var(--color-primary)', width: '56px' }} value={value || ''} onChange={e => onChange(e.target.value)} />
-    <button type="button" className="stepper-button" onClick={() => change((Number(value) || 0) + 1)} style={{ width: '30px', height: '30px', borderRadius: '10px', background: 'rgba(255,255,255,.08)', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>+</button>
-  </div>;
+  return (
+    <div className="stepper-group">
+      <button type="button" className="stepper-button" onClick={() => change((Number(value) || 0) - 1)}>−</button>
+      <input type="number" placeholder={placeholder} className="stepper-input" value={value || ''} onChange={e => onChange(e.target.value)} />
+      <button type="button" className="stepper-button" onClick={() => change((Number(value) || 0) + 1)}>+</button>
+    </div>
+  );
 }
 
 export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan, sharedShareId, onWorkoutComplete }) {
@@ -36,6 +38,53 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
 
   // bottom drawer state
   const [showBottomDrawer, setShowBottomDrawer] = useState(false);
+  const [drawerHeight, setDrawerHeight] = useState(68);
+  const drawerDragRef = useRef({ active: false, startY: 0, startHeight: 68 });
+  const DRAWER_MIN_HEIGHT = 68;
+  const DRAWER_MAX_HEIGHT = 340;
+
+  const openDrawer = () => {
+    setShowBottomDrawer(true);
+    setDrawerHeight(DRAWER_MAX_HEIGHT);
+  };
+
+  const closeDrawer = () => {
+    setShowBottomDrawer(false);
+    setDrawerHeight(DRAWER_MIN_HEIGHT);
+  };
+
+  const toggleDrawer = () => {
+    if (showBottomDrawer) closeDrawer();
+    else openDrawer();
+  };
+
+  const handleDrawerPointerDown = (event) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawerDragRef.current = {
+      active: true,
+      startY: event.clientY,
+      startHeight: drawerHeight,
+    };
+  };
+
+  const handleDrawerPointerMove = (event) => {
+    if (!drawerDragRef.current.active) return;
+    const delta = drawerDragRef.current.startY - event.clientY;
+    const nextHeight = Math.max(DRAWER_MIN_HEIGHT, Math.min(DRAWER_MAX_HEIGHT, drawerDragRef.current.startHeight + delta));
+    setDrawerHeight(nextHeight);
+    setShowBottomDrawer(nextHeight > DRAWER_MIN_HEIGHT + 20);
+  };
+
+  const handleDrawerPointerUp = () => {
+    if (!drawerDragRef.current.active) return;
+    drawerDragRef.current.active = false;
+    if (drawerHeight > (DRAWER_MIN_HEIGHT + DRAWER_MAX_HEIGHT) / 2) {
+      setShowBottomDrawer(true);
+      setDrawerHeight(DRAWER_MAX_HEIGHT);
+    } else {
+      closeDrawer();
+    }
+  };
 
   useEffect(() => {
     startWorkout();
@@ -242,9 +291,11 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
   // Helper values
   if (loading || !plan) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--color-secondary)' }}>
-        <Dumbbell size={32} className="pulse-effect" style={{ color: 'var(--accent-orange)', marginBottom: '16px' }} />
-        Inizializzazione sessione di allenamento...
+      <div className="auth-screen auth-screen--centered">
+        <div className="shared-workout-empty-center">
+          <Dumbbell size={32} className="pulse-effect icon-pulse-orange" />
+          <p className="subtle-text">Inizializzazione sessione di allenamento...</p>
+        </div>
       </div>
     );
   }
@@ -258,149 +309,82 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', background: '#070b13' }}>
+    <div className="active-workout-app">
       
       {/* Top Session Header */}
-      <div style={{
-        padding: '16px 20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderBottom: '1px solid var(--border-color)',
-        background: 'rgba(11, 15, 25, 0.8)'
-      }}>
-        <div>
-          <h2 style={{ fontSize: '15px', color: 'var(--accent-orange)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>In Corso</h2>
-          <h1 style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'var(--font-family-title)' }}>{plan.name}</h1>
-          {plan.activeDay && <p style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>{plan.activeDay.name}</p>}
+      <div className="active-workout-header">
+        <div className="active-workout-header__left">
+          <span className="session-pill">In Corso</span>
+          <h1 className="session-title">{plan.name}</h1>
+          {plan.activeDay && <p className="session-subtitle">{plan.activeDay.name}</p>}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(255,255,255,0.05)',
-            padding: '6px 12px',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontFamily: 'var(--font-family-title)',
-            fontWeight: '600'
-          }}>
-            <Clock size={14} style={{ color: 'var(--accent-orange)' }} />
+        <div className="active-workout-header__right">
+          <div className="session-timer">
+            <Clock size={14} className="icon-accent" />
             {formatElapsed()}
           </div>
-          <button 
-            onClick={handleEndWorkout}
-            style={{
-              background: '#ef4444',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '8px 12px',
-              fontWeight: '700',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
+          <button onClick={handleEndWorkout} className="workout-end-btn">
             <Square size={12} fill="currentColor" /> Fine
           </button>
         </div>
       </div>
 
       {/* Main Fullscreen Exercise View */}
-      <div ref={contentScrollRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px 20px 84px', overflowY: 'auto' }}>
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--border-active)' }}>
+      <div ref={contentScrollRef} className="active-workout-content">
+        <div className="glass-panel glass-panel--active">
           {/* Card Header: Exercise Name */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <span style={{
-              display: 'inline-block',
-              background: 'rgba(255, 122, 0, 0.1)',
-              color: 'var(--accent-orange)',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              fontSize: '11px',
-              fontWeight: '700',
-              marginBottom: '10px',
-              textTransform: 'uppercase'
-            }}>
+          <div className="active-workout-card__header">
+            <span className="exercise-pill">
               Esercizio {currentExerciseIndex + 1} di {plan.exercises.length}
             </span>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '6px' }}>{currentExercise.name}</h2>
+            <h2 className="exercise-title">{currentExercise.name}</h2>
             {currentExercise.description && (
-              <p style={{ color: 'var(--color-secondary)', fontSize: '13px' }}>{currentExercise.description}</p>
+              <p className="exercise-description">{currentExercise.description}</p>
             )}
           </div>
 
           {/* Sets Logger */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+          <div className="exercise-set-list">
             {Array(currentExercise.sets).fill(null).map((_, setIdx) => {
               const setLogged = completedSets[currentExId]?.[setIdx] || false;
               return (
                 <div 
                   key={setIdx} 
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'stretch',
-                    padding: '16px 16px 12px',
-                    borderRadius: '18px',
-                    background: setLogged ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${setLogged ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-color)'}`
-                  }}
+                  className={`exercise-set-card ${setLogged ? 'exercise-set-card--done' : ''}`}
                 >
 
                   {/* Set Inputs */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: setLogged ? 'var(--accent-green)' : 'rgba(255,255,255,0.05)', color: setLogged ? '#0b0f19' : 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '13px' }}>
+                  <div className="exercise-set-card-content">
+                    <div className="exercise-set-top">
+                      <div className="set-number-block">
+                        <div className={`set-number-badge ${setLogged ? 'set-number-badge--done' : ''}`}>
                           {setIdx + 1}
                         </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'block', fontSize: '13px', color: 'var(--color-secondary)' }}>Target</span>
-                          <strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>{currentExercise.reps} reps</strong>
+                        <div className="set-target">
+                          <span className="set-target-title">Target</span>
+                          <strong className="set-target-value">{currentExercise.reps} reps</strong>
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
-                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', width: '100%' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', minWidth: '120px' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>Peso</span>
-                          <div style={{ opacity: setLogged ? 0.6 : 1, pointerEvents: setLogged ? 'none' : 'auto' }}>
-                            <Stepper placeholder="kg" value={setWeights[currentExId]?.[setIdx]} onChange={value => handleParamChange(currentExId, setIdx, 'weight', value)} />
-                          </div>
+                    <div className="set-controls">
+                      <div className="set-controls-row">
+                        <div className={setLogged ? 'param-group param-group--disabled' : 'param-group'}>
+                          <span className="param-label">Peso</span>
+                          <Stepper placeholder="kg" value={setWeights[currentExId]?.[setIdx]} onChange={value => handleParamChange(currentExId, setIdx, 'weight', value)} />
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', minWidth: '120px' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>Rip.</span>
-                          <div style={{ opacity: setLogged ? 0.6 : 1, pointerEvents: setLogged ? 'none' : 'auto' }}>
-                            <Stepper min={1} placeholder="rep" value={setReps[currentExId]?.[setIdx]} onChange={value => handleParamChange(currentExId, setIdx, 'reps', value)} />
-                          </div>
+                        <div className={setLogged ? 'param-group param-group--disabled' : 'param-group'}>
+                          <span className="param-label">Rip.</span>
+                          <Stepper min={1} placeholder="rep" value={setReps[currentExId]?.[setIdx]} onChange={value => handleParamChange(currentExId, setIdx, 'reps', value)} />
                         </div>
                       </div>
 
                       <button
                         onClick={() => handleToggleSet(currentExerciseIndex, setIdx)}
-                        style={{
-                          width: '100%',
-                          height: '44px',
-                          borderRadius: '14px',
-                          border: 'none',
-                          background: setLogged ? 'var(--accent-green)' : 'rgba(255, 122, 0, 0.16)',
-                          color: setLogged ? '#fff' : 'var(--accent-orange)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all var(--transition-fast)',
-                          flexShrink: 0
-                        }}
+                        className={`set-action-button ${setLogged ? 'set-action-button--done' : 'set-action-button--pending'}`}
                       >
-                        <Check size={20} style={{ margin: 'auto' }} />
+                        <Check size={20} className="icon-center" />
                       </button>
                     </div>
                   </div>
@@ -410,20 +394,18 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
           </div>
 
           {/* Navigation Controls inside Card */}
-          <div style={{ display: 'flex', gap: '12px', marginTop: '24px', width: '100%' }}>
+          <div className="workout-nav-actions">
             <button
               onClick={() => handleExerciseNavigation(Math.max(0, currentExerciseIndex - 1))}
               disabled={currentExerciseIndex === 0}
-              className="btn-secondary"
-              style={{ flex: 1, padding: '12px' }}
+              className="btn-secondary btn-secondary--block"
             >
               Precedente
             </button>
             <button
               onClick={() => handleExerciseNavigation(Math.min(plan.exercises.length - 1, currentExerciseIndex + 1))}
               disabled={currentExerciseIndex === plan.exercises.length - 1}
-              className="btn-secondary"
-              style={{ flex: 1, padding: '12px' }}
+              className="btn-secondary btn-secondary--block"
             >
               Successivo <SkipForward size={14} />
             </button>
@@ -431,128 +413,69 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
         </div>
       </div>
 
-      {/* Persistent Bottom Bar to toggle navigation drawer */}
-      <button 
-        onClick={() => setShowBottomDrawer(!showBottomDrawer)}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          width: '100%',
-          height: '60px',
-          background: 'rgba(22, 30, 46, 0.95)',
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '8px',
-          color: 'var(--color-primary)',
-          fontSize: '14px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          fontFamily: 'var(--font-family-title)',
-          zIndex: 110,
-          borderBottomLeftRadius: 'inherit',
-          borderBottomRightRadius: 'inherit'
-        }}
+      <div
+        className="bottom-sheet"
+        style={{ height: `${drawerHeight}px` }}
       >
-        Vedi tutti gli esercizi
-        {showBottomDrawer ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-      </button>
+        <div className={`bottom-sheet__inner ${showBottomDrawer ? 'bottom-sheet__inner--open' : ''}`}>
+          <button
+            onClick={toggleDrawer}
+            onPointerDown={handleDrawerPointerDown}
+            onPointerMove={handleDrawerPointerMove}
+            onPointerUp={handleDrawerPointerUp}
+            onPointerCancel={handleDrawerPointerUp}
+            className="bottom-toggle-bar"
+            type="button"
+          >
+            <span>Vedi tutti gli esercizi</span>
+            {showBottomDrawer ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+          </button>
 
-      {/* Slide-Up Bottom Drawer showing Done / Active / Upcoming Exercises */}
-      {showBottomDrawer && (
-        <div style={{
-          position: 'absolute',
-          bottom: '60px',
-          left: 0,
-          width: '100%',
-          maxHeight: '280px',
-          background: 'rgba(11, 15, 25, 0.98)',
-          borderTop: '2px solid var(--border-color)',
-          zIndex: 105,
-          overflowY: 'auto',
-          padding: '16px 20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          boxShadow: '0 -10px 30px rgba(0,0,0,0.5)',
-          animation: 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}>
-          <h3 style={{ fontSize: '13px', color: 'var(--color-muted)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px' }}>Programma Esercizi</h3>
-          {plan.exercises.map((item, idx) => {
-            const isActive = idx === currentExerciseIndex;
-            const finished = isExerciseFinished(item.id);
-            return (
-              <div 
-                key={item.id}
-                onClick={() => {
-                  setCurrentExerciseIndex(idx);
-                  setShowBottomDrawer(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  background: isActive ? 'rgba(255, 122, 0, 0.1)' : 'rgba(255,255,255,0.01)',
-                  border: `1px solid ${isActive ? 'rgba(255, 122, 0, 0.3)' : 'transparent'}`,
-                  cursor: 'pointer',
-                  opacity: isActive ? 1 : finished ? 0.6 : 0.4,
-                  transition: 'all var(--transition-fast)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: isActive ? 'var(--accent-orange)' : finished ? 'var(--accent-green)' : 'var(--color-muted)',
-                    boxShadow: isActive ? '0 0 8px var(--accent-orange)' : 'none'
-                  }} />
-                  <span style={{ fontSize: '14px', fontWeight: isActive ? '700' : '500' }}>{item.name}</span>
+          <div className="drawer-panel" aria-hidden={!showBottomDrawer}>
+            <h3 className="drawer-heading">Programma Esercizi</h3>
+            {plan.exercises.map((item, idx) => {
+              const isActive = idx === currentExerciseIndex;
+              const finished = isExerciseFinished(item.id);
+              const itemClasses = [
+                'drawer-item',
+                isActive ? 'drawer-item--active' : 'drawer-item--inactive',
+                finished ? 'drawer-item--finished' : ''
+              ].join(' ');
+              return (
+                <div
+                  key={item.id}
+                  className={itemClasses}
+                  onClick={() => {
+                    setCurrentExerciseIndex(idx);
+                    closeDrawer();
+                  }}
+                >
+                  <div className="drawer-item-left">
+                    <div className={`drawer-item-status ${isActive ? 'drawer-item-status--active' : finished ? 'drawer-item-status--finished' : ''}`} />
+                    <span className={`drawer-item-title ${isActive ? 'drawer-item-title--active' : ''}`}>{item.name}</span>
+                  </div>
+                  {finished ? (
+                    <CheckCircle2 size={16} className="icon-success" />
+                  ) : (
+                    <span className="subtle-text">{item.sets} set</span>
+                  )}
                 </div>
-                
-                {finished ? (
-                  <CheckCircle2 size={16} style={{ color: 'var(--accent-green)' }} />
-                ) : (
-                  <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>{item.sets} set</span>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* FULLSCREEN REST TIMER OVERLAY */}
       {showTimer && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(circle, #101726 0%, #030712 100%)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '24px',
-          animation: 'fadeIn 0.25s ease-out'
-        }}>
-          <span style={{ fontSize: '14px', color: 'var(--accent-orange)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>
-            TEMPO DI RECUPERO
-          </span>
-          <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '40px', color: 'var(--color-primary)', textTransform: 'uppercase' }}>
-            {currentExercise.name}
-          </h2>
+        <div className="timer-overlay">
+          <span className="timer-label">TEMPO DI RECUPERO</span>
+          <h2 className="timer-title">{currentExercise.name}</h2>
 
           {/* Large Circular Countdown Timer */}
-          <div style={{ position: 'relative', width: '220px', height: '220px', marginBottom: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div className="timer-circle-wrapper">
             {/* SVG circle backdrop */}
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+            <svg className="timer-circle-svg" viewBox="0 0 220 220">
               <circle cx="110" cy="110" r="100" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
               <circle 
                 cx="110" 
@@ -566,25 +489,21 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
                 className="timer-circle"
               />
             </svg>
-            <span style={{ fontSize: '64px', fontWeight: '800', fontFamily: 'var(--font-family-title)' }}>
-              {timerSecondsLeft}
-            </span>
+            <span className="timer-value">{timerSecondsLeft}</span>
           </div>
 
           {/* Rest Control Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', maxWidth: '280px' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="timer-controls">
+            <div className="timer-action-row">
               <button 
                 onClick={() => setTimerSecondsLeft(prev => prev + 10)}
-                className="btn-secondary"
-                style={{ flex: 1, padding: '10px' }}
+                className="btn-secondary btn-secondary--block"
               >
                 +10s
               </button>
               <button 
                 onClick={() => setTimerSecondsLeft(prev => Math.max(0, prev - 10))}
-                className="btn-secondary"
-                style={{ flex: 1, padding: '10px' }}
+                className="btn-secondary btn-secondary--block"
               >
                 -10s
               </button>
@@ -596,8 +515,7 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
                 setTimerIsActive(false);
                 setShowTimer(false);
               }}
-              className="btn-primary"
-              style={{ background: 'var(--accent-green)' }}
+              className="btn-primary btn-primary--success"
             >
               SALTA RECUPERO
             </button>

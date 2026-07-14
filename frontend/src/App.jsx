@@ -96,19 +96,29 @@ export default function App() {
   if (initializing) {
     return (
       <div className="app-container">
-        <div style={{ color: 'var(--color-secondary)' }}>Trainly...</div>
+        <div className="page-loading">Trainly...</div>
       </div>
     );
   }
 
+  const viewportClasses = `phone-viewport ${view === 'active_workout' ? 'phone-viewport--no-bottom' : ''}`.trim();
+
   if (shareId) {
-    return <div className="app-container"><div className="phone-frame"><div className="phone-viewport"><SharedWorkout shareId={shareId} /></div></div></div>;
+    return (
+      <div className="app-container">
+        <div className="phone-frame">
+          <div className="phone-viewport">
+            <SharedWorkout shareId={shareId} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="app-container">
       <div className="phone-frame">
-        <div className="phone-viewport" style={{ paddingBottom: view === 'active_workout' ? '0' : '70px', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <div className={viewportClasses}>
           {renderView()}
         </div>
       </div>

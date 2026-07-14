@@ -28,42 +28,23 @@ export default function Register({ onAuthSuccess, onViewChange }) {
   };
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', minHeight: '100%', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <div style={{
-          display: 'inline-flex',
-          padding: '12px',
-          borderRadius: '50%',
-          background: 'rgba(255, 122, 0, 0.1)',
-          color: 'var(--accent-orange)',
-          marginBottom: '12px'
-        }}>
+    <div className="register-screen auth-screen--centered">
+      <div className="register-brand">
+        <div className="register-brand-icon">
           <Dumbbell size={32} className="pulse-effect" />
         </div>
-        <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '4px', letterSpacing: '-0.5px' }}>
-          Registrati su Train<span style={{ color: 'var(--accent-orange)' }}>ly</span>
+        <h1 className="register-heading">
+          Registrati su Train<span className="auth-heading-accent">ly</span>
         </h1>
-        <p style={{ color: 'var(--color-secondary)', fontSize: '13px' }}>
+        <p className="register-subtitle">
           Crea il tuo profilo ed inizia ad allenarti.
         </p>
       </div>
 
-      <div className="glass-panel" style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '16px', fontWeight: '600' }}>Nuovo Profilo</h2>
-        
-        {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            color: 'var(--accent-red)',
-            padding: '10px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            marginBottom: '14px'
-          }}>
-            {error}
-          </div>
-        )}
+      <div className="glass-panel auth-panel">
+        <h2 className="auth-panel-title">Nuovo Profilo</h2>
+
+        {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -103,7 +84,7 @@ export default function Register({ onAuthSuccess, onViewChange }) {
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: '20px' }}>
+          <div className="form-group mb-20">
             <label htmlFor="password">PASSWORD</label>
             <input
               id="password"
@@ -122,19 +103,12 @@ export default function Register({ onAuthSuccess, onViewChange }) {
         </form>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-secondary)', fontSize: '13px' }}>
+      <div className="text-center">
+        <p className="auth-subtitle">
           Hai già un account?{' '}
           <button
             onClick={() => onViewChange('login')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent-orange)',
-              fontWeight: '600',
-              cursor: 'pointer',
-              fontSize: '13px'
-            }}
+            className="auth-link-button"
           >
             Accedi
           </button>

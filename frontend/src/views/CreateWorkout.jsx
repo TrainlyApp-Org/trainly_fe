@@ -11,10 +11,10 @@ const generateUuid = () => {
 
 function NumberStepper({ value, min = 0, onChange }) {
   const update = (next) => onChange(Math.max(min, next));
-  return <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-    <button type="button" onClick={() => update((Number(value) || 0) - 1)} style={{ width: '26px', height: '34px', border: 'none', borderRadius: '8px', background: 'rgba(255,255,255,.08)', color: 'var(--color-primary)', cursor: 'pointer' }}>−</button>
-    <input type="number" min={min} className="form-control compact-stepper-input" style={{ minHeight: '34px', padding: '5px', fontSize: '14px', textAlign: 'center' }} value={value} onChange={e => onChange(Math.max(min, parseInt(e.target.value) || min))} />
-    <button type="button" onClick={() => update((Number(value) || 0) + 1)} style={{ width: '26px', height: '34px', border: 'none', borderRadius: '8px', background: 'rgba(255,255,255,.08)', color: 'var(--color-primary)', cursor: 'pointer' }}>+</button>
+  return <div className="row-gap-4 align-center">
+    <button type="button" onClick={() => update((Number(value) || 0) - 1)} className="stepper-button compact-stepper-btn">−</button>
+    <input type="number" min={min} className="form-control compact-stepper-input" value={value} onChange={e => onChange(Math.max(min, parseInt(e.target.value) || min))} />
+    <button type="button" onClick={() => update((Number(value) || 0) + 1)} className="stepper-button compact-stepper-btn">+</button>
   </div>;
 }
 
@@ -174,42 +174,20 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+    <div className="create-workout-page">
       {/* Header */}
-      <div style={{
-        padding: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-color)',
-        background: 'var(--bg-primary)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button 
-            onClick={onBack}
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-primary)',
-              cursor: 'pointer'
-            }}
-          >
+      <div className="create-workout-header">
+        <div className="create-workout-header-left">
+          <button className="button-circle" onClick={onBack}>
             <ArrowLeft size={18} />
           </button>
-          <h1 style={{ fontSize: '20px', fontWeight: '800' }}>{workoutId ? 'Modifica Scheda' : 'Nuova Scheda'}</h1>
+          <h1 className="create-workout-title">{workoutId ? 'Modifica Scheda' : 'Nuova Scheda'}</h1>
         </div>
 
         <button 
           onClick={handleSaveWorkout}
-          className="btn-primary"
+          className="btn-primary create-workout-status-button"
           disabled={saving}
-          style={{ width: 'auto', padding: '8px 16px', borderRadius: '12px', fontSize: '14px' }}
         >
           <Save size={16} />
           {saving ? 'Salvataggio...' : 'Salva'}
@@ -217,27 +195,16 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
       </div>
 
       {/* Main Form content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 100px 20px' }}>
+      <div className="create-workout-content">
         {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            color: 'var(--accent-red)',
-            padding: '12px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
+          <div className="alert-panel alert-panel--danger">
             <AlertTriangle size={16} />
             {error}
           </div>
         )}
 
         {/* Plan Details */}
-        <div className="glass-panel" style={{ marginBottom: '24px' }}>
+        <div className="glass-panel create-workout-section">
           <div className="form-group">
             <label>NOME SCHEDA</label>
             <input
@@ -249,7 +216,7 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
               required
             />
           </div>
-          <div className="form-group" style={{ marginBottom: '0' }}>
+          <div className="form-group form-group--no-bottom">
             <label>DESCRIZIONE (OPZIONALE)</label>
             <input
               type="text"
@@ -261,85 +228,75 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
           </div>
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-secondary)' }}>Giorni della scheda</h3>
-            <button onClick={addDay} className="btn-secondary" style={{ width: 'auto', padding: '8px 12px', fontSize: '12px' }}><Plus size={14} /> Aggiungi giorno</button>
+        <section className="create-workout-section">
+          <div className="create-workout-section-head">
+            <h3 className="section-heading">Giorni della scheda</h3>
+            <button onClick={addDay} className="btn-secondary create-workout-empty-button"><Plus size={14} /> Aggiungi giorno</button>
           </div>
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+
+          <div className="create-workout-day-list">
             {days.map((day, index) => (
-              <button key={day.id} onClick={() => setActiveDayId(day.id)} style={{ flex: '0 0 auto', border: `1px solid ${activeDay.id === day.id ? 'var(--accent-orange)' : 'var(--border-color)'}`, background: activeDay.id === day.id ? 'rgba(255,122,0,.14)' : 'rgba(255,255,255,.03)', color: activeDay.id === day.id ? 'var(--accent-orange)' : 'var(--color-secondary)', borderRadius: '12px', padding: '10px 12px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>
+              <button
+                key={day.id}
+                onClick={() => setActiveDayId(day.id)}
+                className={`create-workout-day-pill ${activeDay.id === day.id ? 'create-workout-day-pill--active' : ''}`}
+              >
                 {day.name || `Giorno ${index + 1}`} · {day.exercises.length}
               </button>
             ))}
           </div>
-          <div className="glass-panel" style={{ padding: '14px', marginTop: '12px' }}>
-            <label style={{ display: 'block', fontSize: '11px', color: 'var(--color-muted)', marginBottom: '6px' }}>NOME DEL GIORNO</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+
+          <div className="glass-panel create-workout-day-detail">
+            <label className="create-workout-day-label">NOME DEL GIORNO</label>
+            <div className="create-workout-day-controls">
               <input className="form-control" value={activeDay.name} placeholder="es. Giorno A — Spinta" onChange={e => updateActiveDay(day => ({ ...day, name: e.target.value }))} />
-              {days.length > 1 && <button onClick={() => removeDay(activeDay.id)} title="Elimina giorno" style={{ border: 'none', background: 'rgba(239,68,68,.1)', color: 'var(--accent-red)', borderRadius: '10px', padding: '12px', cursor: 'pointer' }}><Trash2 size={17} /></button>}
+              {days.length > 1 && <button onClick={() => removeDay(activeDay.id)} title="Elimina giorno" className="create-workout-remove-button"><Trash2 size={17} /></button>}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Selected Exercises List */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-secondary)' }}>Esercizi — {activeDay.name || 'Giorno'}</h3>
-            <span style={{ fontSize: '13px', color: 'var(--color-muted)' }}>{selectedExercises.length} selezionati</span>
+        <div className="create-workout-section">
+          <div className="create-workout-section-head">
+            <h3 className="section-heading">Esercizi — {activeDay.name || 'Giorno'}</h3>
+            <span className="text-small text-muted">{selectedExercises.length} selezionati</span>
           </div>
 
           {selectedExercises.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '32px 16px',
-              background: 'rgba(255, 255, 255, 0.01)',
-              borderRadius: '16px',
-              border: '1px dashed var(--border-color)'
-            }}>
-              <p style={{ color: 'var(--color-muted)', fontSize: '13px', marginBottom: '16px' }}>Nessun esercizio ancora aggiunto.</p>
+            <div className="create-workout-empty-card">
+              <p className="text-muted">Nessun esercizio ancora aggiunto.</p>
               <button 
                 onClick={() => setShowAddModal(true)} 
-                className="btn-secondary"
-                style={{ fontSize: '13px', padding: '10px 16px', borderRadius: '10px', width: 'auto', margin: '0 auto' }}
+                className="btn-secondary create-workout-empty-button"
               >
                 <Plus size={14} /> Aggiungi esercizio
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="flex-column-gap">
               {selectedExercises.map((entry, index) => (
-                <div key={index} className="glass-panel" style={{ padding: '16px', position: 'relative' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingRight: '24px' }}>
-                    <h4 style={{ fontSize: '15px', fontWeight: '700' }}>{entry.name}</h4>
+                <div key={index} className="glass-panel create-workout-exercise-card">
+                  <div className="create-workout-exercise-info">
+                    <h4>{entry.name}</h4>
                     <button
                       onClick={() => handleRemoveExercise(index)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--accent-red)',
-                        position: 'absolute',
-                        right: '16px',
-                        top: '16px',
-                        cursor: 'pointer'
-                      }}
+                      className="button-ghost button-ghost--danger"
+                      title="Rimuovi esercizio"
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
-                  
-                  {/* Workout Parameters settings */}
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '600', display: 'block', marginBottom: '4px' }}>SERIE</label>
+                  <div className="create-workout-params">
+                    <div className="create-workout-param">
+                      <label>SERIE</label>
                       <NumberStepper min={1} value={entry.sets} onChange={value => handleUpdateExerciseParam(index, 'sets', value)} />
                     </div>
-                    <div style={{ flex: 1.5 }}>
-                      <label style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '600', display: 'block', marginBottom: '4px' }}>RIPETIZIONI</label>
+                    <div className="create-workout-param">
+                      <label>RIPETIZIONI</label>
                       <NumberStepper min={1} value={parseInt(entry.reps) || 1} onChange={value => handleUpdateExerciseParam(index, 'reps', String(value))} />
                     </div>
-                    <div style={{ flex: 1.5 }}>
-                      <label style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '600', display: 'block', marginBottom: '4px' }}>RECUPERO (S)</label>
+                    <div className="create-workout-param">
+                      <label>RECUPERO (S)</label>
                       <NumberStepper value={entry.rest_time} onChange={value => handleUpdateExerciseParam(index, 'rest_time', value)} />
                     </div>
                   </div>
@@ -348,8 +305,7 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
 
               <button 
                 onClick={() => setShowAddModal(true)} 
-                className="btn-secondary"
-                style={{ fontSize: '14px', display: 'flex', gap: '8px', padding: '12px' }}
+                className="btn-secondary create-workout-add-button"
               >
                 <Plus size={16} /> Aggiungi altro esercizio
               </button>
@@ -360,187 +316,124 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
 
       {/* Slide-up Exercise Selector Drawer / Modal */}
       {showAddModal && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(3, 7, 18, 0.95)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          {/* Header */}
-          <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '700' }}>Seleziona Esercizio</h3>
-            <button 
-              onClick={() => { setShowAddModal(false); setShowCustomForm(false); }}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-primary)',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={16} />
-            </button>
-          </div>
+        <div className="create-workout-modal-backdrop" onClick={() => { setShowAddModal(false); setShowCustomForm(false); }}>
+          <div className="create-workout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-workout-modal-header">
+              <h3>Seleziona Esercizio</h3>
+              <button 
+                onClick={() => { setShowAddModal(false); setShowCustomForm(false); }}
+                className="button-circle button-circle-small"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-          {/* Quick Search */}
-          {!showCustomForm && (
-            <div style={{ padding: '16px 20px 8px 20px' }}>
-              <div style={{ position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)' }} />
+            {!showCustomForm && (
+              <div className="create-workout-modal-search">
+                <Search size={16} className="search-icon" />
                 <input
                   type="text"
-                  className="form-control"
-                  style={{ paddingLeft: '36px' }}
+                  className="form-control create-workout-search-input"
                   placeholder="Cerca esercizio per nome..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Inline Custom Form Toggle */}
-          <div style={{ padding: '10px 20px' }}>
-            <button
-              onClick={() => setShowCustomForm(!showCustomForm)}
-              style={{
-                background: showCustomForm ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 122, 0, 0.1)',
-                border: showCustomForm ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(255, 122, 0, 0.2)',
-                color: showCustomForm ? 'var(--accent-red)' : 'var(--accent-orange)',
-                width: '100%',
-                padding: '10px',
-                borderRadius: '10px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-family-title)',
-                fontSize: '13px'
-              }}
-            >
-              {showCustomForm ? 'Annulla esercizio personalizzato' : '+ Crea esercizio personalizzato'}
-            </button>
-          </div>
-
-          {showCustomForm ? (
-            /* Custom Exercise Form */
-            <form onSubmit={handleCreateCustomExercise} style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
-              <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '16px' }}>Nuovo Esercizio Custom</h4>
-              <div className="form-group">
-                <label>NOME ESERCIZIO</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="es. Piegamenti a Diamante"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>CATEGORIA</label>
-                <select
-                  className="form-control"
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value)}
-                  required
-                >
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label>DESCRIZIONE (OPZIONALE)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="es. Focus parte interna dei tricipiti"
-                  value={customDesc}
-                  onChange={(e) => setCustomDesc(e.target.value)}
-                />
-              </div>
-              <button type="submit" className="btn-primary">
-                Crea ed Aggiungi
+            <div className="create-workout-modal-toggle">
+              <button
+                onClick={() => setShowCustomForm(!showCustomForm)}
+                className={`button-toggle ${showCustomForm ? 'button-toggle--active' : 'button-toggle--inactive'}`}
+                type="button"
+              >
+                {showCustomForm ? 'Annulla esercizio personalizzato' : '+ Crea esercizio personalizzato'}
               </button>
-            </form>
-          ) : (
-            /* Main List & Tabs */
-            <>
-              {/* Categories horizontally scrollable tabs */}
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                padding: '8px 20px',
-                overflowX: 'auto',
-                whiteSpace: 'nowrap'
-              }}>
-                {categories.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategoryTab(cat.id)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      border: 'none',
-                      background: selectedCategoryTab === cat.id ? 'var(--accent-orange)' : 'rgba(255,255,255,0.03)',
-                      color: selectedCategoryTab === cat.id ? '#fff' : 'var(--color-secondary)',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+            </div>
 
-              {/* Exercises List */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
-                {filteredExercises.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-muted)', fontSize: '13px' }}>
-                    Nessun esercizio trovato in questa categoria.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {filteredExercises.map(ex => (
-                      <div 
-                        key={ex.id}
-                        onClick={() => handleAddExerciseToPlan(ex)}
-                        style={{
-                          background: 'rgba(255,255,255,0.02)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '12px',
-                          padding: '12px 16px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div>
-                          <span style={{ fontSize: '14px', fontWeight: '600', display: 'block' }}>{ex.name}</span>
-                          {ex.description && <span style={{ fontSize: '11px', color: 'var(--color-muted)' }}>{ex.description}</span>}
-                        </div>
-                        <ChevronRight size={14} style={{ color: 'var(--color-muted)' }} />
-                      </div>
+            {showCustomForm ? (
+              <form onSubmit={handleCreateCustomExercise} className="create-workout-modal-form">
+                <h4>Nuovo Esercizio Custom</h4>
+                <div className="form-group">
+                  <label>NOME ESERCIZIO</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="es. Piegamenti a Diamante"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>CATEGORIA</label>
+                  <select
+                    className="form-control"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required
+                  >
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+                  </select>
+                </div>
+                <div className="form-group form-group--no-bottom">
+                  <label>DESCRIZIONE (OPZIONALE)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="es. Focus parte interna dei tricipiti"
+                    value={customDesc}
+                    onChange={(e) => setCustomDesc(e.target.value)}
+                  />
+                </div>
+                <button type="submit" className="btn-primary create-workout-full-width-button">
+                  Crea ed Aggiungi
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="create-workout-category-list">
+                  {categories.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategoryTab(cat.id)}
+                      className={`category-pill ${selectedCategoryTab === cat.id ? 'category-pill--active' : 'category-pill--inactive'}`}
+                      type="button"
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="exercise-selector">
+                  {filteredExercises.length === 0 ? (
+                    <div className="empty-state-card">
+                      Nessun esercizio trovato in questa categoria.
+                    </div>
+                  ) : (
+                    <div className="flex-column-gap">
+                      {filteredExercises.map(ex => (
+                        <button
+                          key={ex.id}
+                          onClick={() => handleAddExerciseToPlan(ex)}
+                          className="exercise-selector-item glass-panel"
+                          type="button"
+                        >
+                          <div>
+                            <span className="exercise-name">{ex.name}</span>
+                            {ex.description && <span className="exercise-subtitle">{ex.description}</span>}
+                          </div>
+                          <ChevronRight size={14} className="icon-muted" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
