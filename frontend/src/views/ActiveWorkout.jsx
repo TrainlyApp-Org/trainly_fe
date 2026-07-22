@@ -15,7 +15,6 @@ function Stepper({ value, onChange, min = 0, placeholder }) {
 
 export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan, sharedShareId, onWorkoutComplete }) {
   const [plan, setPlan] = useState(null);
-  const [logId, setLogId] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Navigation & logging
@@ -98,42 +97,42 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
     setLoading(true);
     try {
       const planData = sharedPlan || await api.getWorkoutDetails(workoutPlanId, workoutDayId);
-      setPlan(planData);
 
-      let activeLog = null;
-      if (!sharedPlan) {
-        activeLog = await api.getActiveWorkout(workoutPlanId, workoutDayId).catch(err => {
-          if (!err.message?.includes('Active workout log not found')) {
-            console.error('Failed to load active workout log:', err);
-          }
-          return null;
-        });
-      }
+      const selectedDay = workoutDayId
+        ? planData.days.find(day => day.id === workoutDayId)
+        : planData.days[0];
 
-      if (!sharedPlan && !activeLog) {
-        const logData = await api.startWorkoutLog(workoutPlanId, workoutDayId);
-        setLogId(logData.logId);
-      } else if (activeLog) {
-        setLogId(activeLog.logId);
-      }
+      const normalizedPlan = {
+        ...planData,
+        activeDay: selectedDay,
+        exercises: selectedDay?.exercises || []
+      };
+
+      setPlan(normalizedPlan);
+
+      // Logging allenamenti non ancora implementato
 
       // 3. Initialize state maps for all sets
       const initialCompleted = {};
       const initialWeights = {};
       const initialReps = {};
-      const savedDetails = activeLog?.details || [];
+      const savedDetails = [];
       const savedLookup = savedDetails.reduce((acc, detail) => {
-        if (!acc[detail.exercise_id]) acc[detail.exercise_id] = {};
-        acc[detail.exercise_id][detail.set_index] = detail;
+        if (!acc[detail.exerciseId]) acc[detail.exerciseId] = {};
+        acc[detail.exerciseId][detail.set_index] = detail;
         return acc;
       }, {});
       
-      planData.exercises.forEach(ex => {
+      normalizedPlan.exercises.forEach(ex => {
         const viewId = ex.id;
-        const exerciseSaved = savedLookup[ex.exercise_id] || {};
-        initialCompleted[viewId] = Array.from({ length: ex.sets }, (_, index) => exerciseSaved[index]?.completed ?? false);
-        initialWeights[viewId] = Array.from({ length: ex.sets }, (_, index) => exerciseSaved[index]?.weight ?? ex.set_values?.[index]?.weight ?? ex.weight ?? 0);
-        initialReps[viewId] = Array.from({ length: ex.sets }, (_, index) => exerciseSaved[index]?.reps ?? ex.set_values?.[index]?.reps ?? (parseInt(ex.reps) || 10));
+        initialCompleted[viewId] =
+          Array.from({ length: ex.sets }, () => false);
+
+        initialWeights[viewId] =
+          Array.from({ length: ex.sets }, () => 0);
+
+        initialReps[viewId] =
+          Array.from({ length: ex.sets }, () => parseInt(ex.reps) || 10);
       });
 
       setCompletedSets(initialCompleted);
@@ -185,7 +184,7 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
   const handleToggleSet = async (exIndex, setIdx) => {
     const exercise = plan.exercises[exIndex];
     const viewId = exercise.id;
-    const actualExerciseId = exercise.exercise_id;
+    const actualExerciseId = exercise.exerciseId;
     
     const isCompleted = !completedSets[viewId][setIdx];
     const repsDone = setReps[viewId][setIdx];
@@ -198,12 +197,8 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
     setCompletedSets(newCompleted);
 
     try {
-      // Log set to backend
-      if (logId) await api.logWorkoutSet(logId, actualExerciseId, setIdx, repsDone, weightDone, isCompleted);
-
-      // If marked as complete, trigger rest timer
       if (isCompleted) {
-        startRestTimer(exercise.rest_time || 60);
+        startRestTimer(exercise.restTime || 60);
       }
     } catch (err) {
       console.error('Failed to log set:', err);
@@ -237,39 +232,14 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
   };
 
   const handleEndWorkout = async () => {
-    if (!confirm('Vuoi davvero completare e terminare questo allenamento?')) return;
 
-    try {
-      if (logId) {
-        const savePromises = plan.exercises.flatMap(exercise => {
-          const viewId = exercise.id;
-          const actualExerciseId = exercise.exercise_id;
-          const weights = setWeights[viewId] || [];
-          const reps = setReps[viewId] || [];
-          const completed = completedSets[viewId] || [];
-
-          return Array.from({ length: exercise.sets }, (_, setIdx) => {
-            return api.logWorkoutSet(
-              logId,
-              actualExerciseId,
-              setIdx,
-              reps[setIdx] ?? 0,
-              weights[setIdx] ?? 0,
-              completed[setIdx] ?? false
-            );
-          });
-        });
-
-        await Promise.all(savePromises);
-      }
-
-      if (logId) await api.completeWorkoutLog(logId);
-      clearInterval(elapsedTimerRef.current);
-      onWorkoutComplete();
-    } catch (err) {
-      console.error('Failed saving workout data before complete:', err);
-      alert('Impossibile salvare l\'allenamento.');
+    if (!confirm('Vuoi davvero completare e terminare questo allenamento?')) {
+      return;
     }
+
+    clearInterval(elapsedTimerRef.current);
+
+    onWorkoutComplete();
   };
 
   const formatElapsed = () => {
@@ -302,6 +272,10 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
 
   const currentExercise = plan.exercises[currentExerciseIndex];
   const currentExId = currentExercise?.id;
+
+  console.log('INDEX:', currentExerciseIndex);
+  console.log('LENGTH:', plan.exercises.length);
+  console.log('DISABLED:', currentExerciseIndex === plan.exercises.length - 1); 
 
   // Check which exercises are fully completed
   const isExerciseFinished = (viewId) => {

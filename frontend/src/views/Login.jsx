@@ -17,7 +17,16 @@ export default function Login({ onAuthSuccess, onViewChange }) {
 
     try {
       const data = await api.login(email, password);
-      onAuthSuccess(data.user);
+      onAuthSuccess(data.user); 
+      localStorage.setItem(
+          "access_token",
+          data.access_token
+      );
+
+      localStorage.setItem(
+          "refresh_token",
+          data.refresh_token
+      );
     } catch (err) {
       setError(err.message || 'Errore durante il login.');
     } finally {

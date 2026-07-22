@@ -11,10 +11,10 @@ const generateUuid = () => {
 
 function NumberStepper({ value, min = 0, onChange }) {
   const update = (next) => onChange(Math.max(min, next));
-  return <div className="row-gap-4 align-center">
-    <button type="button" onClick={() => update((Number(value) || 0) - 1)} className="stepper-button compact-stepper-btn">−</button>
+  return <div className="align-center">
+    <button type="button" onClick={() => update((Number(value) || 0) - 1)} className="stepper-button">−</button>
     <input type="number" min={min} className="form-control compact-stepper-input" value={value} onChange={e => onChange(Math.max(min, parseInt(e.target.value) || min))} />
-    <button type="button" onClick={() => update((Number(value) || 0) + 1)} className="stepper-button compact-stepper-btn">+</button>
+    <button type="button" onClick={() => update((Number(value) || 0) + 1)} className="stepper-button">+</button>
   </div>;
 }
 
@@ -100,11 +100,11 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
   const handleAddExerciseToPlan = (exercise) => {
     // Add exercise with default sets and reps
     const newEntry = {
-      exercise_id: exercise.id,
+      exerciseId: exercise.id,
       name: exercise.name,
       sets: 3,
       reps: '10',
-      rest_time: 60
+      restTime: 60
     };
     updateActiveDay(day => ({ ...day, exercises: [...day.exercises, newEntry] }));
     setShowAddModal(false);
@@ -169,7 +169,7 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
   // Filter exercises based on search and category
   const filteredExercises = exercises.filter(ex => {
     const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = ex.category_id === selectedCategoryTab;
+    const matchesCategory = ex.categoryId === selectedCategoryTab;
     return matchesSearch && matchesCategory;
   });
 
@@ -421,9 +421,9 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
                           className="exercise-selector-item glass-panel"
                           type="button"
                         >
-                          <div>
-                            <span className="exercise-name">{ex.name}</span>
-                            {ex.description && <span className="exercise-subtitle">{ex.description}</span>}
+                          <div className="exercise-selector-info">
+                            <div className="exercise-name">{ex.name}</div>
+                            {ex.description && <div className="exercise-subtitle">{ex.description}</div>}
                           </div>
                           <ChevronRight size={14} className="icon-muted" />
                         </button>

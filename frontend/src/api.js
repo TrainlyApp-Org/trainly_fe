@@ -1,23 +1,60 @@
 // Trainly Frontend API Client
-const API_BASE_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:5001/api`;
+const API_BASE_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
 
 const getHeaders = () => {
-  const token = localStorage.getItem('trainly_token');
-  const headers = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
+
+    const token =
+        localStorage.getItem('access_token');
+
+
+    const headers = {
+        'Content-Type':'application/json',
+    };
+
+
+    if(token){
+
+        headers['Authorization'] =
+            `Bearer ${token}`;
+
+    }
+
+
+    return headers;
 };
 
 const handleResponse = async (response) => {
-  const data = await response.json();
+
+  const text = await response.text();
+
+  const data = text ? JSON.parse(text) : null;
+
   if (!response.ok) {
-    throw new Error(data.error || 'Qualcosa è andato storto.');
+    throw new Error(
+      data?.error || data?.message || 'Qualcosa è andato storto.'
+    );
   }
+
   return data;
+};
+
+const saveAuth = (data)=>{
+
+  localStorage.setItem(
+  'access_token',
+  data.access_token
+  );
+
+  localStorage.setItem(
+  'refresh_token',
+  data.refresh_token
+  );
+
+  localStorage.setItem(
+  'trainly_user',
+  JSON.stringify(data.user)
+  );
+
 };
 
 export const api = {
@@ -29,9 +66,8 @@ export const api = {
       body: JSON.stringify({ email, password }),
     });
     const data = await handleResponse(res);
-    if (data.session?.access_token) {
-      localStorage.setItem('trainly_token', data.session.access_token);
-      localStorage.setItem('trainly_user', JSON.stringify(data.user));
+    if (data.access_token) {
+      saveAuth(data);
     }
     return data;
   },
@@ -43,16 +79,14 @@ export const api = {
       body: JSON.stringify({ email, password, username, fullName }),
     });
     const data = await handleResponse(res);
-    if (data.session?.access_token) {
-      localStorage.setItem('trainly_token', data.session.access_token);
-      localStorage.setItem('trainly_user', JSON.stringify(data.user));
+    if (data.access_token) {
+      saveAuth(data);
     }
     return data;
   },
 
   logout() {
-    localStorage.removeItem('trainly_token');
-    localStorage.removeItem('trainly_user');
+    localStorage.clear();
   },
 
   async getProfile() {
@@ -74,7 +108,6 @@ export const api = {
   // Exercises
   async getCategories() {
     const res = await fetch(`${API_BASE_URL}/exercises/categories`, {
-      headers: getHeaders(),
     });
     return handleResponse(res);
   },

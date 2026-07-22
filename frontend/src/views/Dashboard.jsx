@@ -19,13 +19,13 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
     setLoading(true);
     try {
       const plansData = await api.getWorkouts();
-      setWorkoutPlans(plansData.workoutPlans || []);
-      
-      const historyData = await api.getWorkoutHistory();
-      setHistory(historyData.history || []);
+      setWorkoutPlans(plansData.workouts || []);
 
-      const profileData = await api.getProfile();
-      setUserProfile(profileData.profile);
+      const storedUser = localStorage.getItem('trainly_user');
+
+      if (storedUser) {
+        setUserProfile(JSON.parse(storedUser));
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -195,7 +195,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                     <div className="dashboard-plan-meta">
                       <span className="dashboard-plan-date">
                         <Calendar size={12} />
-                        {new Date(plan.created_at).toLocaleDateString('it-IT')}
+                        {new Date(plan.createdAt).toLocaleDateString('it-IT')}
                       </span>
                       <div className="dashboard-badge">
                         <Play size={12} fill="currentColor" />
@@ -250,7 +250,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
             <h2 className="dashboard-modal-title">{planToStart.name}</h2>
             {planToStart.description && <p className="dashboard-modal-description">{planToStart.description}</p>}
             <div className="dashboard-modal-day-tabs">
-              {planToStart.days.map(day => (
+              {planToStart.days?.map(day => (
                 <button
                   key={day.id}
                   onClick={() => setSelectedDayId(day.id)}
@@ -261,7 +261,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
               ))}
             </div>
             {(() => {
-              const day = planToStart.days.find(item => item.id === selectedDayId) || planToStart.days[0];
+              const day = planToStart.days?.find(item => item.id === selectedDayId) || planToStart.days?.[0];
               return <>
                 <h3 className="dashboard-modal-subtitle">Esercizi da fare</h3>
                 <div className="dashboard-modal-exercise-list">
