@@ -29,6 +29,19 @@ const handleResponse = async (response) => {
 
   const data = text ? JSON.parse(text) : null;
 
+  if (response.status === 401) {
+    // Token scaduto o non valido
+    localStorage.removeItem('access_token');
+
+    // eventualmente rimuovi altri dati della sessione
+    localStorage.removeItem('user');
+
+    // redirect al login
+    window.location.href = '/login';
+
+    return;
+  }
+
   if (!response.ok) {
     throw new Error(
       data?.error || data?.message || 'Qualcosa è andato storto.'

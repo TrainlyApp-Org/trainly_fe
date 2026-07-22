@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Plus, Play, Trash2, Calendar, Dumbbell, User, LogOut, ChevronRight, Pencil, Share2 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorkout, onViewProfile, onLogout }) {
   const [workoutPlans, setWorkoutPlans] = useState([]);
@@ -10,6 +11,11 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
   const [userProfile, setUserProfile] = useState(null);
   const [planToStart, setPlanToStart] = useState(null);
   const [selectedDayId, setSelectedDayId] = useState(null);
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    id: null
+  });
 
   useEffect(() => {
     fetchData();
@@ -33,16 +39,42 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
     }
   };
 
-  const handleDelete = async (id, e) => {
-    e.stopPropagation();
-    if (!confirm('Sei sicuro di voler eliminare questa scheda?')) return;
+  const handleDelete = (id, e) => {
+      e.stopPropagation();
+
+      setDeleteModal({
+        open: true,
+        id
+      });
+  };
+
+  const confirmDelete = async () => {
+
+    const id = deleteModal.id;
 
     try {
       await api.deleteWorkout(id);
-      setWorkoutPlans(workoutPlans.filter(plan => plan.id !== id));
+
+      setWorkoutPlans(
+        workoutPlans.filter(plan => plan.id !== id)
+      );
+
     } catch (err) {
       alert(err.message || 'Impossibile eliminare la scheda.');
     }
+
+    setDeleteModal({
+      open: false,
+      id: null
+    });
+  };
+
+
+  const cancelDelete = () => {
+    setDeleteModal({
+      open: false,
+      id: null
+    });
   };
 
   const handleShare = async (id, e) => {
@@ -278,6 +310,16 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
             <button className="dashboard-modal-close" onClick={() => setPlanToStart(null)}>Chiudi</button>
           </div>
         </div>
+      )}
+
+      {deleteModal.open && (
+        <ConfirmModal
+          title="Eliminare scheda?"
+          message="Sei sicuro di voler eliminare questa scheda? Tutti gli esercizi associati verranno rimossi."
+          confirmText="Elimina"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       )}
     </div>
   );

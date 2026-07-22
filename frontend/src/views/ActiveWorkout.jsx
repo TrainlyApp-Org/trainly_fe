@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Play, RefreshCw, SkipForward, Square, User } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 function Stepper({ value, onChange, min = 0, placeholder }) {
   const change = (next) => onChange(Math.max(min, next));
@@ -41,6 +42,9 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
   const drawerDragRef = useRef({ active: false, startY: 0, startHeight: 68 });
   const DRAWER_MIN_HEIGHT = 68;
   const DRAWER_MAX_HEIGHT = 340;
+
+  // popup end workout
+  const [showEndWorkoutModal, setShowEndWorkoutModal] = useState(false);
 
   const openDrawer = () => {
     setShowBottomDrawer(true);
@@ -231,15 +235,22 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
     }
   };
 
-  const handleEndWorkout = async () => {
+  const handleEndWorkout = () => {
+    setShowEndWorkoutModal(true);
+  };
 
-    if (!confirm('Vuoi davvero completare e terminare questo allenamento?')) {
-      return;
-    }
 
+  const confirmEndWorkout = () => {
     clearInterval(elapsedTimerRef.current);
 
+    setShowEndWorkoutModal(false);
+
     onWorkoutComplete();
+  };
+
+
+  const cancelEndWorkout = () => {
+    setShowEndWorkoutModal(false);
   };
 
   const formatElapsed = () => {
@@ -439,6 +450,17 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
           </div>
         </div>
       </div>
+
+      {showEndWorkoutModal && (
+        <ConfirmModal
+          title="Terminare allenamento?"
+          message="Sei sicuro di voler completare questa sessione? I dati salvati non andranno persi."
+          confirmText="Termina"
+          cancelText="Annulla"
+          onConfirm={confirmEndWorkout}
+          onCancel={cancelEndWorkout}
+        />
+      )}
 
       {/* FULLSCREEN REST TIMER OVERLAY */}
       {showTimer && (
