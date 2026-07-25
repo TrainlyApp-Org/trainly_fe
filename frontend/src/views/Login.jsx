@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { Dumbbell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login({ onAuthSuccess, onViewChange }) {
+  const navigate = useNavigate();
+  const handleViewChange = onViewChange || ((view) => navigate(view === 'register' ? '/register' : '/login'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,7 +93,7 @@ export default function Login({ onAuthSuccess, onViewChange }) {
         <p className="auth-subtitle">
           Non hai un account?{' '}
           <button
-            onClick={() => onViewChange('register')}
+            onClick={() => handleViewChange('register')}
             className="auth-link-button"
           >
             Registrati

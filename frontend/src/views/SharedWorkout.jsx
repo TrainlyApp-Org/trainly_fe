@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Dumbbell, Play } from 'lucide-react';
 import { api } from '../api';
 import ActiveWorkout from './ActiveWorkout';
+import { useParams } from 'react-router-dom';
 
-export default function SharedWorkout({ shareId }) {
+export default function SharedWorkout({ shareId: propShareId }) {
+  const { shareId: routeShareId } = useParams();
+  const shareId = propShareId || routeShareId;
   const [plan, setPlan] = useState(null);
   const [selectedDayId, setSelectedDayId] = useState(null);
   const [startedDayId, setStartedDayId] = useState(null);

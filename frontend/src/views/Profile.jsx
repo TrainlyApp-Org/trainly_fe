@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { User, Save, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profile({ onBack }) {
+  const navigate = useNavigate();
+  const handleBack = onBack || (() => navigate('/dashboard'));
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -55,7 +58,7 @@ export default function Profile({ onBack }) {
     <div className="profile-page">
       {/* Header */}
       <div className="profile-header">
-        <button onClick={onBack} className="button-circle">
+        <button onClick={handleBack} className="button-circle">
           <ArrowLeft size={20} />
         </button>
         <h1 className="page-title">Il tuo Profilo</h1>

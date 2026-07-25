@@ -2691,6 +2691,14 @@ button.icon-button--muted {
   margin-bottom: 10px;
 }
 
+.dashboard-modal-header{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 .dashboard-empty-card .btn-primary {
   margin: 0 auto;
   max-width: 200px;
@@ -2800,14 +2808,22 @@ button.icon-button--muted {
   background: rgba(255,255,255,.03);
   border-radius: 10px;
   font-size: 13px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px
 }
 
 .dashboard-modal-close {
-  width: 100%;
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-secondary);
-  padding: 16px;
   cursor: pointer;
 }
 

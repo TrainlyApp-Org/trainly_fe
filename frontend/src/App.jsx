@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { api } from './api';
 
 // Views
@@ -10,87 +11,52 @@ import CreateWorkout from './views/CreateWorkout';
 import ActiveWorkout from './views/ActiveWorkout';
 import SharedWorkout from './views/SharedWorkout';
 
+function RequireAuth({ user, children }) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
-  const [view, setView] = useState('login'); // login | register | dashboard | profile | create_workout | active_workout
-  const [activeWorkoutId, setActiveWorkoutId] = useState(null);
-  const [activeWorkoutDayId, setActiveWorkoutDayId] = useState(null);
-  const [editingWorkoutId, setEditingWorkoutId] = useState(null);
   const [initializing, setInitializing] = useState(true);
-  const shareId = new URLSearchParams(window.location.search).get('share');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check if user is logged in
-    const token = localStorage.getItem('trainly_token');
+    const token = localStorage.getItem('access_token');
     const storedUser = localStorage.getItem('trainly_user');
     
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
-      setView('dashboard');
-    } else {
-      setView('login');
     }
     setInitializing(false);
   }, []);
 
+  // Handle backward compatibility for ?share=XYZ links
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shareId = searchParams.get('share');
+    if (shareId) {
+      navigate(`/shared/${shareId}`, { replace: true });
+    }
+  }, [location.search, navigate]);
+
   const handleAuthSuccess = (loggedUser) => {
     setUser(loggedUser);
-    setView('dashboard');
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
     api.logout();
     setUser(null);
-    setView('login');
+    navigate('/login');
   };
 
   const handleStartWorkout = (planId, dayId) => {
-    setActiveWorkoutId(planId);
-    setActiveWorkoutDayId(dayId);
-    setView('active_workout');
-  };
-
-  const renderView = () => {
-    switch (view) {
-      case 'login':
-        return <Login onAuthSuccess={handleAuthSuccess} onViewChange={setView} />;
-      case 'register':
-        return <Register onAuthSuccess={handleAuthSuccess} onViewChange={setView} />;
-      case 'dashboard':
-        return (
-          <Dashboard 
-            onStartWorkout={handleStartWorkout}
-            onCreateWorkout={() => { setEditingWorkoutId(null); setView('create_workout'); }}
-            onEditWorkout={(id) => { setEditingWorkoutId(id); setView('create_workout'); }}
-            onViewProfile={() => setView('profile')}
-            onLogout={handleLogout}
-          />
-        );
-      case 'profile':
-        return <Profile onBack={() => setView('dashboard')} />;
-      case 'create_workout':
-        return (
-          <CreateWorkout 
-            workoutId={editingWorkoutId}
-            onBack={() => { setEditingWorkoutId(null); setView('dashboard'); }} 
-            onSaveSuccess={() => { setEditingWorkoutId(null); setView('dashboard'); }} 
-          />
-        );
-      case 'active_workout':
-        return (
-          <ActiveWorkout 
-            workoutPlanId={activeWorkoutId}
-            workoutDayId={activeWorkoutDayId}
-            onWorkoutComplete={() => {
-              setActiveWorkoutId(null);
-              setActiveWorkoutDayId(null);
-              setView('dashboard');
-            }} 
-          />
-        );
-      default:
-        return <Login onAuthSuccess={handleAuthSuccess} onViewChange={setView} />;
-    }
+    navigate(`/workout/active/${planId}/${dayId}`);
   };
 
   if (initializing) {
@@ -101,25 +67,95 @@ export default function App() {
     );
   }
 
-  const viewportClasses = `phone-viewport ${view === 'active_workout' ? 'phone-viewport--no-bottom' : ''}`.trim();
-
-  if (shareId) {
-    return (
-      <div className="app-container">
-        <div className="phone-frame">
-          <div className="phone-viewport">
-            <SharedWorkout shareId={shareId} />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isActiveWorkout = location.pathname.startsWith('/workout/active');
+  const viewportClasses = `phone-viewport ${isActiveWorkout ? 'phone-viewport--no-bottom' : ''}`.trim();
 
   return (
     <div className="app-container">
       <div className="phone-frame">
         <div className={viewportClasses}>
-          {renderView()}
+          <Routes>
+            {/* Public Routes */}
+            <Route 
+              path="/login" 
+              element={user ? <Navigate to="/dashboard" replace /> : <Login onAuthSuccess={handleAuthSuccess} />} 
+            />
+            <Route 
+              path="/register" 
+              element={user ? <Navigate to="/dashboard" replace /> : <Register onAuthSuccess={handleAuthSuccess} />} 
+            />
+            <Route 
+              path="/shared/:shareId" 
+              element={<SharedWorkout />} 
+            />
+
+            {/* Protected Routes */}
+            <Route 
+              path="/" 
+              element={
+                <RequireAuth user={user}>
+                  <Navigate to="/dashboard" replace />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <RequireAuth user={user}>
+                  <Dashboard 
+                    onStartWorkout={handleStartWorkout}
+                    onCreateWorkout={() => navigate('/workout/create')}
+                    onEditWorkout={(id) => navigate(`/workout/edit/${id}`)}
+                    onViewProfile={() => navigate('/profile')}
+                    onLogout={handleLogout}
+                  />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <RequireAuth user={user}>
+                  <Profile onBack={() => navigate('/dashboard')} />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/workout/create" 
+              element={
+                <RequireAuth user={user}>
+                  <CreateWorkout 
+                    onBack={() => navigate('/dashboard')} 
+                    onSaveSuccess={() => navigate('/dashboard')} 
+                  />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/workout/edit/:workoutId" 
+              element={
+                <RequireAuth user={user}>
+                  <CreateWorkout 
+                    onBack={() => navigate('/dashboard')} 
+                    onSaveSuccess={() => navigate('/dashboard')} 
+                  />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/workout/active/:workoutPlanId/:workoutDayId" 
+              element={
+                <RequireAuth user={user}>
+                  <ActiveWorkout 
+                    onWorkoutComplete={() => navigate('/dashboard')} 
+                  />
+                </RequireAuth>
+              } 
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Play, RefreshCw, SkipForward, Square, User } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { useParams, useNavigate } from 'react-router-dom';
 
 function Stepper({ value, onChange, min = 0, placeholder }) {
   const change = (next) => onChange(Math.max(min, next));
@@ -14,7 +15,19 @@ function Stepper({ value, onChange, min = 0, placeholder }) {
   );
 }
 
-export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan, sharedShareId, onWorkoutComplete }) {
+export default function ActiveWorkout({ 
+  workoutPlanId: propWorkoutPlanId, 
+  workoutDayId: propWorkoutDayId, 
+  sharedPlan, 
+  sharedShareId, 
+  onWorkoutComplete 
+}) {
+  const { workoutPlanId: routeWorkoutPlanId, workoutDayId: routeWorkoutDayId } = useParams();
+  const workoutPlanId = propWorkoutPlanId || routeWorkoutPlanId;
+  const workoutDayId = propWorkoutDayId || routeWorkoutDayId;
+  const navigate = useNavigate();
+  const handleWorkoutComplete = onWorkoutComplete || (() => navigate('/dashboard'));
+
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -27,6 +40,20 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
   // Elapsed Workout Time
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const elapsedTimerRef = useRef(null);
+  const sessionStartedAtRef = useRef(null);
+  const sessionKey = sharedShareId 
+    ? `trainly_shared_session_${sharedShareId}`
+    : `trainly_workout_session_${workoutPlanId}_${workoutDayId}`;
+
+  useEffect(() => {
+    if (!plan || !sessionStartedAtRef.current) return;
+    localStorage.setItem(sessionKey, JSON.stringify({
+      startedAt: sessionStartedAtRef.current,
+      completedSets,
+      setWeights,
+      setReps
+    }));
+  }, [plan, completedSets, setWeights, setReps, sessionKey]);
 
   // Fullscreen Rest Timer State
   const [showTimer, setShowTimer] = useState(false);
@@ -112,40 +139,56 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
         exercises: selectedDay?.exercises || []
       };
 
+      // Check cache
+      const cachedSession = localStorage.getItem(sessionKey);
+      let startTime = Date.now();
+      let cachedCompleted = {};
+      let cachedWeights = {};
+      let cachedReps = {};
+      
+      if (cachedSession) {
+        try {
+          const parsed = JSON.parse(cachedSession);
+          if (parsed && parsed.startedAt) {
+            startTime = parsed.startedAt;
+            cachedCompleted = parsed.completedSets || {};
+            cachedWeights = parsed.setWeights || {};
+            cachedReps = parsed.setReps || {};
+          }
+        } catch (e) {
+          console.error('Error parsing cached session:', e);
+        }
+      }
+
+      sessionStartedAtRef.current = startTime;
       setPlan(normalizedPlan);
 
-      // Logging allenamenti non ancora implementato
-
-      // 3. Initialize state maps for all sets
+      // Initialize state maps for all sets (fallback to default if not in cache)
       const initialCompleted = {};
       const initialWeights = {};
       const initialReps = {};
-      const savedDetails = [];
-      const savedLookup = savedDetails.reduce((acc, detail) => {
-        if (!acc[detail.exerciseId]) acc[detail.exerciseId] = {};
-        acc[detail.exerciseId][detail.set_index] = detail;
-        return acc;
-      }, {});
       
       normalizedPlan.exercises.forEach(ex => {
         const viewId = ex.id;
-        initialCompleted[viewId] =
-          Array.from({ length: ex.sets }, () => false);
-
-        initialWeights[viewId] =
-          Array.from({ length: ex.sets }, () => 0);
-
-        initialReps[viewId] =
-          Array.from({ length: ex.sets }, () => parseInt(ex.reps) || 10);
+        initialCompleted[viewId] = cachedCompleted[viewId] || Array.from({ length: ex.sets }, () => false);
+        initialWeights[viewId] = cachedWeights[viewId] || Array.from({ length: ex.sets }, () => 0);
+        initialReps[viewId] = cachedReps[viewId] || Array.from({ length: ex.sets }, () => parseInt(ex.reps) || 10);
       });
 
       setCompletedSets(initialCompleted);
       setSetWeights(initialWeights);
       setSetReps(initialReps);
 
-      // 4. Start workout timer
+      // Set elapsed time immediately
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setElapsedSeconds(elapsed >= 0 ? elapsed : 0);
+
+      // Start workout timer
       elapsedTimerRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
+        if (sessionStartedAtRef.current) {
+          const secs = Math.floor((Date.now() - sessionStartedAtRef.current) / 1000);
+          setElapsedSeconds(secs >= 0 ? secs : 0);
+        }
       }, 1000);
 
     } catch (err) {
@@ -242,10 +285,9 @@ export default function ActiveWorkout({ workoutPlanId, workoutDayId, sharedPlan,
 
   const confirmEndWorkout = () => {
     clearInterval(elapsedTimerRef.current);
-
+    localStorage.removeItem(sessionKey);
     setShowEndWorkoutModal(false);
-
-    onWorkoutComplete();
+    handleWorkoutComplete();
   };
 
 

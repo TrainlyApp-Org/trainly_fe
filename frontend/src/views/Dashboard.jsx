@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Plus, Play, Trash2, Calendar, Dumbbell, User, LogOut, ChevronRight, Pencil, Share2 } from 'lucide-react';
+import { Plus, Play, Trash2, Calendar, Dumbbell, User, LogOut, ChevronRight, Pencil, Share2, X } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorkout, onViewProfile, onLogout }) {
@@ -279,7 +279,10 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
       {planToStart && (
         <div className="dashboard-modal-overlay">
           <div className="dashboard-modal-panel" onClick={e => e.stopPropagation()}>
-            <h2 className="dashboard-modal-title">{planToStart.name}</h2>
+            <div className="dashboard-modal-header">
+              <h2 className="dashboard-modal-title">{planToStart.name}</h2>
+              <div><button className="dashboard-modal-close" onClick={() => setPlanToStart(null)}><X size={16}/></button></div>
+            </div>
             {planToStart.description && <p className="dashboard-modal-description">{planToStart.description}</p>}
             <div className="dashboard-modal-day-tabs">
               {planToStart.days?.map(day => (
@@ -301,13 +304,13 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                     <div key={exercise.id} className="dashboard-exercise-item">
                       <strong>{index + 1}. {exercise.name}</strong>
                       <span>{exercise.sets} × {exercise.reps}</span>
+                      <span>| Rest: {exercise.restTime} sec</span>
                     </div>
                   ))}
                 </div>
                 <button className="btn-primary" onClick={() => onStartWorkout(planToStart.id, day.id)}><Play size={16} fill="currentColor" /> Avvia {day.name}</button>
               </>;
             })()}
-            <button className="dashboard-modal-close" onClick={() => setPlanToStart(null)}>Chiudi</button>
           </div>
         </div>
       )}

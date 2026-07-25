@@ -10,15 +10,15 @@ const normaliseDays = (days, exercises = []) => {
   return source.map((day, dayIndex) => ({
     id: day.id || `day-${dayIndex + 1}`,
     name: String(day.name || `Giorno ${dayIndex + 1}`).trim(),
-    order_index: dayIndex,
+    orderIndex: dayIndex,
     exercises: (day.exercises || []).map((ex, index) => ({
       exercise_id: ex.exercise_id,
       sets: ex.sets || 3,
       reps: ex.reps !== undefined ? String(ex.reps) : '10',
-      rest_time: ex.rest_time !== undefined ? parseInt(ex.rest_time) : 60,
+      restTime: ex.restTime !== undefined ? parseInt(ex.restTime) : 60,
       weight: ex.weight !== undefined ? Number(ex.weight) : 0,
       set_values: Array.isArray(ex.set_values) ? ex.set_values.map(value => ({ weight: Number(value.weight) || 0, reps: Number(value.reps) || 0 })) : [],
-      order_index: index
+      orderIndex: index
     }))
   }));
 };
@@ -201,8 +201,8 @@ router.get('/:id', requireAuth, async (req, res) => {
         id,
         sets,
         reps,
-        rest_time,
-        order_index,
+        restTime,
+        orderIndex,
         exercise:exercises (
           id,
           name,
@@ -211,7 +211,7 @@ router.get('/:id', requireAuth, async (req, res) => {
         )
       `)
       .eq('workout_plan_id', id)
-      .order('order_index');
+      .order('orderIndex');
 
     if (exercisesError) {
       return res.status(400).json({ error: exercisesError.message });
@@ -222,8 +222,8 @@ router.get('/:id', requireAuth, async (req, res) => {
       id: item.id,
       sets: item.sets,
       reps: item.reps,
-      rest_time: item.rest_time,
-      order_index: item.order_index,
+      restTime: item.restTime,
+      orderIndex: item.orderIndex,
       exercise_id: item.exercise?.id,
       name: item.exercise?.name,
       description: item.exercise?.description,
@@ -292,8 +292,8 @@ router.post('/', requireAuth, async (req, res) => {
         exercise_id: ex.exercise_id,
         sets: ex.sets || 3,
         reps: ex.reps !== undefined ? String(ex.reps) : '10',
-        rest_time: ex.rest_time !== undefined ? parseInt(ex.rest_time) : 60,
-        order_index: ex.order_index !== undefined ? ex.order_index : index
+        restTime: ex.restTime !== undefined ? parseInt(ex.restTime) : 60,
+        orderIndex: ex.orderIndex !== undefined ? ex.orderIndex : index
       }));
 
       const { error: insertError } = await userClient
@@ -371,8 +371,8 @@ router.put('/:id', requireAuth, async (req, res) => {
         exercise_id: ex.exercise_id,
         sets: ex.sets || 3,
         reps: ex.reps !== undefined ? String(ex.reps) : '10',
-        rest_time: ex.rest_time !== undefined ? parseInt(ex.rest_time) : 60,
-        order_index: ex.order_index !== undefined ? ex.order_index : index
+        restTime: ex.restTime !== undefined ? parseInt(ex.restTime) : 60,
+        orderIndex: ex.orderIndex !== undefined ? ex.orderIndex : index
       }));
 
       const { error: insertError } = await userClient

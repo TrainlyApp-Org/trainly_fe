@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { ArrowLeft, Save, Plus, Trash2, Search, Dumbbell, ChevronRight, X, AlertTriangle } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const generateUuid = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -18,7 +19,13 @@ function NumberStepper({ value, min = 0, onChange }) {
   </div>;
 }
 
-export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
+export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSaveSuccess }) {
+  const { workoutId: routeWorkoutId } = useParams();
+  const workoutId = propWorkoutId || routeWorkoutId;
+  const navigate = useNavigate();
+  const handleBack = onBack || (() => navigate('/dashboard'));
+  const handleSaveSuccess = onSaveSuccess || (() => navigate('/dashboard'));
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [days, setDays] = useState([{ id: generateUuid(), name: 'Giorno 1', exercises: [] }]);
@@ -158,7 +165,7 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
     try {
       if (workoutId) await api.updateWorkout(workoutId, name, description, days);
       else await api.createWorkout(name, description, days);
-      onSaveSuccess();
+      handleSaveSuccess();
     } catch (err) {
       setError(err.message || 'Errore nel salvataggio della scheda.');
     } finally {
@@ -178,7 +185,7 @@ export default function CreateWorkout({ workoutId, onBack, onSaveSuccess }) {
       {/* Header */}
       <div className="create-workout-header">
         <div className="create-workout-header-left">
-          <button className="button-circle" onClick={onBack}>
+          <button className="button-circle" onClick={handleBack}>
             <ArrowLeft size={18} />
           </button>
           <h1 className="create-workout-title">{workoutId ? 'Modifica Scheda' : 'Nuova Scheda'}</h1>
