@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080c14" />
+    <meta name="description" content="Trainly sta arrivando: stiamo costruendo un modo più semplice per organizzare e seguire i tuoi allenamenti." />
+    <meta property="og:title" content="Trainly — Stiamo preparando qualcosa di forte" />
+    <meta property="og:description" content="La nuova esperienza Trainly è in costruzione." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Trainly — Coming soon</title>
+  </head>
+  <body>
+    <main class="page-shell">
+      <div class="glow glow--orange" aria-hidden="true"></div>
+      <div class="glow glow--blue" aria-hidden="true"></div>
+
+      <nav class="nav" aria-label="Navigazione principale">
+        <a class="brand" href="./" aria-label="Trainly, homepage">
+          <span class="brand__mark" aria-hidden="true"><b>T</b><em>y</em></span>
+          <span class="brand__name">Trainl<i>y</i></span>
+        </a>
+        <span class="status"><span class="status__dot"></span>In sviluppo</span>
+      </nav>
+
+      <section class="hero">
+        <div class="hero__copy">
+          <p class="eyebrow">Il tuo allenamento, a modo tuo</p>
+          <h1>Stiamo preparando<br /><span>qualcosa di forte.</span></h1>
+          <p class="lead">
+            Trainly ti aiuterà a creare, organizzare e seguire i tuoi allenamenti
+            con un'esperienza semplice, personale e senza distrazioni.
+          </p>
+
+          <div class="progress-card" aria-label="Stato del progetto">
+            <div class="progress-card__top">
+              <span>Progetto in costruzione</span>
+              <span aria-hidden="true">•••</span>
+            </div>
+            <div class="progress"><span></span></div>
+            <p>Ci stiamo allenando per il lancio.</p>
+          </div>
+        </div>
+
+        <div class="visual" aria-hidden="true">
+          <div class="orbit orbit--one"></div>
+          <div class="orbit orbit--two"></div>
+          <div class="weight">
+            <span class="weight__plate weight__plate--outer"></span>
+            <span class="weight__plate weight__plate--inner"></span>
+            <span class="weight__bar"></span>
+            <span class="weight__plate weight__plate--inner"></span>
+            <span class="weight__plate weight__plate--outer"></span>
+          </div>
+          <div class="visual__caption">BUILD · TRAIN · REPEAT</div>
+        </div>
+      </section>
+
+      <footer>
+        <span>© <span id="year"></span> Trainly</span>
+        <span>Allenati. Migliora. Ripeti.</span>
+      </footer>
+    </main>
+
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
