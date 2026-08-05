@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="286" height="72" viewBox="0 0 286 72" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">Trainly</title>
+  <desc id="description">Wordmark Trainly con monogramma T arancione</desc>
+
+  <g transform="translate(4 4)">
+    <rect width="64" height="64" rx="18" fill="#151B28"/>
+    <path d="M17 19H47" stroke="#FF7A00" stroke-width="8" stroke-linecap="round"/>
+    <path d="M32 19V46" stroke="#FF7A00" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="32" cy="50" r="4" fill="#FF7A00"/>
+  </g>
+
+  <text x="84" y="48"
+        fill="#F8FAFC"
+        font-family="Outfit, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        font-size="43"
+        font-weight="700"
+        letter-spacing="-1.5">Trainly</text>
+</svg>
