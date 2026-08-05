@@ -30,7 +30,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
       const storedUser = localStorage.getItem('trainly_user');
 
       if (storedUser) {
-        setUserProfile(JSON.parse(storedUser));
+        setUserProfile(localStorage.getItem('full_name'));
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -136,7 +136,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
           <div>
             <span className="dashboard-greeting">Ciao,</span>
             <span className="dashboard-username">
-              {userProfile?.full_name || userProfile?.username || 'Atleta'}
+              {userProfile || 'Atleta'}
             </span>
           </div>
         </div>

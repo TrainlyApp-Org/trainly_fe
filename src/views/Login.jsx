@@ -21,6 +21,7 @@ export default function Login({ onAuthSuccess, onViewChange }) {
     try {
       const data = await api.login(email, password);
       onAuthSuccess(data.user); 
+      console.log(data.user.user_metadata.full_name)
       localStorage.setItem(
           "access_token",
           data.access_token
@@ -29,6 +30,11 @@ export default function Login({ onAuthSuccess, onViewChange }) {
       localStorage.setItem(
           "refresh_token",
           data.refresh_token
+      );
+
+      localStorage.setItem(
+          "full_name",
+          data.user.user_metadata.full_name
       );
     } catch (err) {
       setError(err.message || 'Errore durante il login.');
