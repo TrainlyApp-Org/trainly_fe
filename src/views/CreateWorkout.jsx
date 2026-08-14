@@ -3,6 +3,8 @@ import { api } from '../api';
 import { ArrowLeft, Save, Plus, Trash2, Search, Dumbbell, ChevronRight, X, AlertTriangle } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
+const WORKOUT_DESCRIPTION_MAX_LENGTH = 40;
+
 const generateUuid = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -58,7 +60,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
     try {
       const plan = await api.getWorkoutDetails(workoutId);
       setName(plan.name || '');
-      setDescription(plan.description || '');
+      setDescription((plan.description || '').slice(0, WORKOUT_DESCRIPTION_MAX_LENGTH));
       setDays(plan.days || []);
       setActiveDayId(plan.days?.[0]?.id || null);
     } catch (err) {
@@ -224,12 +226,16 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
             />
           </div>
           <div className="form-group form-group--no-bottom">
-            <label>DESCRIZIONE (OPZIONALE)</label>
+            <label htmlFor="workoutDescription">
+              DESCRIZIONE (OPZIONALE) · {description.length}/{WORKOUT_DESCRIPTION_MAX_LENGTH}
+            </label>
             <input
+              id="workoutDescription"
               type="text"
               className="form-control"
               placeholder="es. Lunedì - Focus Petto e Spalle"
               value={description}
+              maxLength={WORKOUT_DESCRIPTION_MAX_LENGTH}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
@@ -304,7 +310,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
                     </div>
                     <div className="create-workout-param">
                       <label>RECUPERO (S)</label>
-                      <NumberStepper value={entry.rest_time} onChange={value => handleUpdateExerciseParam(index, 'rest_time', value)} />
+                      <NumberStepper value={entry.restTime} onChange={value => handleUpdateExerciseParam(index, 'restTime', value)} />
                     </div>
                   </div>
                 </div>

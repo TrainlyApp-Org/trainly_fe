@@ -9,8 +9,32 @@ create table if not exists public.profiles (
   username text unique,
   full_name text,
   avatar_url text,
+  is_premium boolean default false not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Migration for profiles created before premium subscriptions were introduced.
+alter table public.profiles
+  add column if not exists is_premium boolean default false not null;
+
+-- Migration for profiles created before account creation dates were introduced.
+alter table public.profiles
+  add column if not exists created_at timestamp with time zone;
+
+update public.profiles as profile
+set created_at = coalesce(auth_user.created_at, timezone('utc'::text, now()))
+from auth.users as auth_user
+where profile.id = auth_user.id
+  and profile.created_at is null;
+
+update public.profiles
+set created_at = timezone('utc'::text, now())
+where created_at is null;
+
+alter table public.profiles
+  alter column created_at set default timezone('utc'::text, now()),
+  alter column created_at set not null;
 
 -- RLS for Profiles
 alter table public.profiles enable row level security;
@@ -26,6 +50,22 @@ create policy "Users can insert their own profile"
 create policy "Users can update their own profile" 
   on public.profiles for update 
   using (auth.uid() = id);
+
+-- Premium status is server-managed and cannot be changed by an authenticated user.
+create or replace function public.prevent_self_premium_change()
+returns trigger as $$
+begin
+  if auth.uid() is not null and new.is_premium is distinct from old.is_premium then
+    raise exception 'Premium status can only be changed by the server';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists prevent_self_premium_change on public.profiles;
+create trigger prevent_self_premium_change
+  before update on public.profiles
+  for each row execute procedure public.prevent_self_premium_change();
 
 -- 2. Categories Table
 create table if not exists public.categories (
@@ -181,6 +221,62 @@ create policy "Users can CRUD workout log details belonging to their logs"
       and profile_id = auth.uid()
     )
   );
+
+-- Prevent duplicate writes for the same set in an active workout log.
+create unique index if not exists workout_log_details_unique_set
+  on public.workout_log_details (workout_log_id, exercise_id, set_index);
+
+-- Values entered from a public shared workout link. These are intentionally
+-- separate from authenticated workout logs and are not part of workout history.
+create table if not exists public.shared_workout_sets (
+  id uuid default uuid_generate_v4() primary key,
+  share_id uuid not null,
+  workout_day_id uuid not null,
+  exercise_id uuid not null,
+  set_index integer not null check (set_index >= 0),
+  weight numeric not null default 0 check (weight >= 0),
+  reps integer not null check (reps >= 0),
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique (share_id, workout_day_id, exercise_id, set_index)
+);
+
+alter table public.shared_workout_sets enable row level security;
+
+-- Latest weight and reps selected by an authenticated user for each set.
+-- This is intentionally separate from workout history and stores no session,
+-- completion status or timestamps.
+create table if not exists public.workout_set_values (
+  id uuid default uuid_generate_v4() primary key,
+  profile_id uuid references public.profiles(id) on delete cascade not null,
+  workout_plan_id uuid references public.workout_plans(id) on delete cascade not null,
+  workout_day_id uuid not null,
+  exercise_id uuid references public.exercises(id) on delete cascade not null,
+  set_index integer not null check (set_index >= 0),
+  weight numeric not null default 0 check (weight >= 0),
+  reps integer not null check (reps >= 0),
+  unique (profile_id, workout_plan_id, workout_day_id, exercise_id, set_index)
+);
+
+alter table public.workout_set_values enable row level security;
+
+create policy "Users can read their workout set values"
+  on public.workout_set_values
+  for select
+  to authenticated
+  using (profile_id = auth.uid());
+
+create policy "Users can insert their workout set values"
+  on public.workout_set_values
+  for insert
+  to authenticated
+  with check (profile_id = auth.uid());
+
+create policy "Users can update their workout set values"
+  on public.workout_set_values
+  for update
+  to authenticated
+  using (profile_id = auth.uid())
+  with check (profile_id = auth.uid());
 
 
 -- Seed Data (Predefined Categories and Exercises)

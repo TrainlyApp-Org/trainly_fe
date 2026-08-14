@@ -10,6 +10,8 @@ import Profile from './views/Profile';
 import CreateWorkout from './views/CreateWorkout';
 import ActiveWorkout from './views/ActiveWorkout';
 import SharedWorkout from './views/SharedWorkout';
+import AdminDashboard from './views/AdminDashboard';
+import AdminAccountDetails from './views/AdminAccountDetails';
 
 function RequireAuth({ user, children }) {
   if (!user) {
@@ -68,12 +70,13 @@ export default function App() {
   }
 
   const isActiveWorkout = location.pathname.startsWith('/workout/active');
+  const isAdminDashboard = location.pathname.startsWith('/admin');
   const viewportClasses = `phone-viewport ${isActiveWorkout ? 'phone-viewport--no-bottom' : ''}`.trim();
 
   return (
-    <div className="app-container">
-      <div className="phone-frame">
-        <div className={viewportClasses}>
+    <div className={`app-container ${isAdminDashboard ? 'app-container--admin' : ''}`}>
+      <div className={`phone-frame ${isAdminDashboard ? 'phone-frame--admin' : ''}`}>
+        <div className={`${viewportClasses} ${isAdminDashboard ? 'phone-viewport--admin' : ''}`}>
           <Routes>
             {/* Public Routes */}
             <Route 
@@ -107,10 +110,30 @@ export default function App() {
                     onCreateWorkout={() => navigate('/workout/create')}
                     onEditWorkout={(id) => navigate(`/workout/edit/${id}`)}
                     onViewProfile={() => navigate('/profile')}
+                    onOpenAdmin={() => navigate('/admin')}
                     onLogout={handleLogout}
                   />
                 </RequireAuth>
               } 
+            />
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth user={user}>
+                  <AdminDashboard
+                    onBack={() => navigate('/dashboard')}
+                    onLogout={handleLogout}
+                  />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/accounts/:profileId"
+              element={
+                <RequireAuth user={user}>
+                  <AdminAccountDetails onBack={() => navigate('/admin')} />
+                </RequireAuth>
+              }
             />
             <Route 
               path="/profile" 

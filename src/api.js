@@ -1,6 +1,8 @@
 // Trainly Frontend API Client
 const API_BASE_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
 
+let refreshPromise = null;
+
 const getHeaders = () => {
 
     const token =
@@ -27,19 +29,13 @@ const handleResponse = async (response) => {
 
   const text = await response.text();
 
-  const data = text ? JSON.parse(text) : null;
-
-  if (response.status === 401) {
-    // Token scaduto o non valido
-    localStorage.removeItem('access_token');
-
-    // eventualmente rimuovi altri dati della sessione
-    localStorage.removeItem('user');
-
-    // redirect al login
-    window.location.href = '/login';
-
-    return;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
   }
 
   if (!response.ok) {
@@ -51,6 +47,72 @@ const handleResponse = async (response) => {
   return data;
 };
 
+const clearAuthAndRedirect = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('trainly_user');
+  localStorage.removeItem('full_name');
+
+  if (window.location.pathname !== '/login') {
+    window.location.assign('/login');
+  }
+};
+
+const refreshAccessToken = async () => {
+  if (refreshPromise) return refreshPromise;
+
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) throw new Error('Refresh token unavailable');
+
+  refreshPromise = (async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Session expired');
+    }
+
+    const session = await response.json();
+    saveAuth(session);
+    return session.access_token;
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+};
+
+const authenticatedFetch = async (url, options = {}) => {
+  const execute = () => fetch(url, {
+    ...options,
+    headers: {
+      ...getHeaders(),
+      ...(options.headers || {}),
+    },
+  });
+
+  let response = await execute();
+  if (response.status !== 401) return response;
+
+  try {
+    await refreshAccessToken();
+  } catch {
+    clearAuthAndRedirect();
+    throw new Error('Sessione scaduta. Effettua nuovamente l’accesso.');
+  }
+
+  response = await execute();
+  if (response.status === 401) {
+    clearAuthAndRedirect();
+    throw new Error('Sessione non valida. Effettua nuovamente l’accesso.');
+  }
+
+  return response;
+};
+
 const saveAuth = (data)=>{
 
   localStorage.setItem(
@@ -58,15 +120,19 @@ const saveAuth = (data)=>{
   data.access_token
   );
 
-  localStorage.setItem(
-  'refresh_token',
-  data.refresh_token
-  );
+  if (data.refresh_token) {
+    localStorage.setItem(
+    'refresh_token',
+    data.refresh_token
+    );
+  }
 
-  localStorage.setItem(
-  'trainly_user',
-  JSON.stringify(data.user)
-  );
+  if (data.user) {
+    localStorage.setItem(
+    'trainly_user',
+    JSON.stringify(data.user)
+    );
+  }
 
 };
 
@@ -103,17 +169,51 @@ export const api = {
   },
 
   async getProfile() {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/auth/me`);
     return handleResponse(res);
   },
 
   async updateProfile(profileData) {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/auth/me`, {
       method: 'PUT',
-      headers: getHeaders(),
       body: JSON.stringify(profileData),
+    });
+    return handleResponse(res);
+  },
+
+  async changePassword(currentPassword, newPassword) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/auth/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    return handleResponse(res);
+  },
+
+  async getAdminStatus() {
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/status`);
+    return handleResponse(res);
+  },
+
+  async getAdminAccounts(page = 0, size = 20, query = '') {
+    const params = new URLSearchParams({ page, size, query });
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts?${params}`);
+    return handleResponse(res);
+  },
+
+  async getAdminAccount(profileId) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}`);
+    return handleResponse(res);
+  },
+
+  async getAdminAccountWorkouts(profileId) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}/workouts`);
+    return handleResponse(res);
+  },
+
+  async updateAdminAccountPremium(profileId, premium) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}/premium`, {
+      method: 'PATCH',
+      body: JSON.stringify({ premium }),
     });
     return handleResponse(res);
   },
@@ -126,16 +226,13 @@ export const api = {
   },
 
   async getExercises() {
-    const res = await fetch(`${API_BASE_URL}/exercises`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/exercises`);
     return handleResponse(res);
   },
 
   async createCustomExercise(name, categoryId, description) {
-    const res = await fetch(`${API_BASE_URL}/exercises`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/exercises`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify({ name, categoryId, description }),
     });
     return handleResponse(res);
@@ -143,48 +240,41 @@ export const api = {
 
   // Workout Routines (Schede)
   async getWorkouts() {
-    const res = await fetch(`${API_BASE_URL}/workouts`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/workouts`);
     return handleResponse(res);
   },
 
   async getWorkoutDetails(id, dayId) {
     const query = dayId ? `?dayId=${encodeURIComponent(dayId)}` : '';
-    const res = await fetch(`${API_BASE_URL}/workouts/${id}${query}`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/workouts/${id}${query}`);
     return handleResponse(res);
   },
 
   async createWorkout(name, description, days) {
-    const res = await fetch(`${API_BASE_URL}/workouts`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/workouts`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify({ name, description, days }),
     });
     return handleResponse(res);
   },
 
   async updateWorkout(id, name, description, days) {
-    const res = await fetch(`${API_BASE_URL}/workouts/${id}`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/workouts/${id}`, {
       method: 'PUT',
-      headers: getHeaders(),
       body: JSON.stringify({ name, description, days }),
     });
     return handleResponse(res);
   },
 
   async deleteWorkout(id) {
-    const res = await fetch(`${API_BASE_URL}/workouts/${id}`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/workouts/${id}`, {
       method: 'DELETE',
-      headers: getHeaders(),
     });
     return handleResponse(res);
   },
 
   async createShareLink(id) {
-    const res = await fetch(`${API_BASE_URL}/workouts/${id}/share`, { method: 'POST', headers: getHeaders() });
+    const res = await authenticatedFetch(`${API_BASE_URL}/workouts/${id}/share`, { method: 'POST' });
     return handleResponse(res);
   },
 
@@ -202,11 +292,30 @@ export const api = {
     return handleResponse(res);
   },
 
+  async getSharedWorkoutSetValues(shareId, dayId) {
+    const query = `?dayId=${encodeURIComponent(dayId)}`;
+    const res = await fetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}/values${query}`);
+    return handleResponse(res);
+  },
+
+  async getWorkoutSetValues(workoutPlanId, workoutDayId) {
+    const query = `?workoutPlanId=${encodeURIComponent(workoutPlanId)}&workoutDayId=${encodeURIComponent(workoutDayId)}`;
+    const res = await authenticatedFetch(`${API_BASE_URL}/workout-set-values${query}`);
+    return handleResponse(res);
+  },
+
+  async saveWorkoutSetValue(workoutPlanId, workoutDayId, exerciseId, setIndex, weight, reps) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/workout-set-values`, {
+      method: 'PUT',
+      body: JSON.stringify({ workoutPlanId, workoutDayId, exerciseId, setIndex, weight, reps }),
+    });
+    return handleResponse(res);
+  },
+
   // Workout Session Logging
   async startWorkoutLog(workoutPlanId, workoutDayId) {
-    const res = await fetch(`${API_BASE_URL}/logs/start`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/logs/start`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify({ workoutPlanId, workoutDayId }),
     });
     return handleResponse(res);
@@ -214,41 +323,33 @@ export const api = {
 
   async getActiveWorkout(workoutPlanId, workoutDayId) {
     const query = `?workoutPlanId=${encodeURIComponent(workoutPlanId)}&workoutDayId=${encodeURIComponent(workoutDayId)}`;
-    const res = await fetch(`${API_BASE_URL}/logs/active${query}`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/logs/active${query}`);
     return handleResponse(res);
   },
 
   async logWorkoutSet(workoutLogId, exerciseId, setIndex, reps, weight, completed) {
-    const res = await fetch(`${API_BASE_URL}/logs/set`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/logs/set`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify({ workoutLogId, exerciseId, setIndex, reps, weight, completed }),
     });
     return handleResponse(res);
   },
 
   async completeWorkoutLog(workoutLogId) {
-    const res = await fetch(`${API_BASE_URL}/logs/complete`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/logs/complete`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify({ workoutLogId }),
     });
     return handleResponse(res);
   },
 
   async getWorkoutHistory() {
-    const res = await fetch(`${API_BASE_URL}/logs/history`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/logs/history`);
     return handleResponse(res);
   },
 
   async getWorkoutHistoryDetails(id) {
-    const res = await fetch(`${API_BASE_URL}/logs/history/${id}`, {
-      headers: getHeaders(),
-    });
+    const res = await authenticatedFetch(`${API_BASE_URL}/logs/history/${id}`);
     return handleResponse(res);
   }
 };

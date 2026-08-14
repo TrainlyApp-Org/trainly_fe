@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api';
-import { Check, CheckCircle2, ChevronDown, ChevronUp, Clock, Dumbbell, Play, RefreshCw, SkipForward, Square, User } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Dumbbell, Play, RefreshCw, SkipBack, SkipForward, Square, User } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -33,6 +33,7 @@ export default function ActiveWorkout({
   
   // Navigation & logging
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [completedSets, setCompletedSets] = useState({}); // { [exId]: [set0_completed, set1_completed, ...] }
   const [setWeights, setSetWeights] = useState({}); // { [exId]: [weight0, weight1, ...] }
   const [setReps, setSetReps] = useState({}); // { [exId]: [reps0, reps1, ...] }
@@ -41,6 +42,7 @@ export default function ActiveWorkout({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const elapsedTimerRef = useRef(null);
   const sessionStartedAtRef = useRef(null);
+  const setValueSaveTimersRef = useRef({});
   const sessionKey = sharedShareId 
     ? `trainly_shared_session_${sharedShareId}`
     : `trainly_workout_session_${workoutPlanId}_${workoutDayId}`;
@@ -59,6 +61,7 @@ export default function ActiveWorkout({
   const [showTimer, setShowTimer] = useState(false);
   const [timerDuration, setTimerDuration] = useState(60);
   const [timerSecondsLeft, setTimerSecondsLeft] = useState(60);
+  const [timerExerciseName, setTimerExerciseName] = useState('');
   const [timerIsActive, setTimerIsActive] = useState(false);
   const restTimerRef = useRef(null);
   const contentScrollRef = useRef(null);
@@ -145,6 +148,7 @@ export default function ActiveWorkout({
       let cachedCompleted = {};
       let cachedWeights = {};
       let cachedReps = {};
+      let storedSetValues = [];
       
       if (cachedSession) {
         try {
@@ -157,6 +161,22 @@ export default function ActiveWorkout({
           }
         } catch (e) {
           console.error('Error parsing cached session:', e);
+        }
+      }
+
+      if (sharedPlan && sharedShareId && selectedDay?.id) {
+        try {
+          const response = await api.getSharedWorkoutSetValues(sharedShareId, selectedDay.id);
+          storedSetValues = response.values || [];
+        } catch (error) {
+          console.error('Failed to load shared weight and reps:', error);
+        }
+      } else if (workoutPlanId && selectedDay?.id) {
+        try {
+          const response = await api.getWorkoutSetValues(workoutPlanId, selectedDay.id);
+          storedSetValues = response.values || [];
+        } catch (error) {
+          console.error('Failed to load saved weight and reps:', error);
         }
       }
 
@@ -173,6 +193,13 @@ export default function ActiveWorkout({
         initialCompleted[viewId] = cachedCompleted[viewId] || Array.from({ length: ex.sets }, () => false);
         initialWeights[viewId] = cachedWeights[viewId] || Array.from({ length: ex.sets }, () => 0);
         initialReps[viewId] = cachedReps[viewId] || Array.from({ length: ex.sets }, () => parseInt(ex.reps) || 10);
+
+        storedSetValues
+          .filter(value => value.exerciseId === ex.exerciseId && value.setIndex < ex.sets)
+          .forEach(value => {
+            initialWeights[viewId][value.setIndex] = Number(value.weight) || 0;
+            initialReps[viewId][value.setIndex] = Number(value.reps) || 0;
+          });
       });
 
       setCompletedSets(initialCompleted);
@@ -199,8 +226,9 @@ export default function ActiveWorkout({
   };
 
   // Rest Timer Controller
-  const startRestTimer = (seconds) => {
+  const startRestTimer = (seconds, exerciseName) => {
     clearInterval(restTimerRef.current);
+    setTimerExerciseName(exerciseName);
     setTimerDuration(seconds);
     setTimerSecondsLeft(seconds);
     setTimerIsActive(true);
@@ -245,35 +273,67 @@ export default function ActiveWorkout({
 
     try {
       if (isCompleted) {
-        startRestTimer(exercise.restTime || 60);
+        if (setIdx < exercise.sets - 1) {
+          setCurrentSetIndex(setIdx + 1);
+        } else if (exIndex < plan.exercises.length - 1) {
+          handleExerciseNavigation(exIndex + 1);
+        }
+        startRestTimer(exercise.restTime || 60, exercise.name);
       }
     } catch (err) {
       console.error('Failed to log set:', err);
     }
   };
 
+  const scheduleSetValueSave = (viewId, setIdx, weight, reps) => {
+    if (sharedPlan || !plan?.activeDay?.id) return;
+
+    const exercise = plan.exercises.find(item => item.id === viewId);
+    if (!exercise?.exerciseId) return;
+
+    const timerKey = `${viewId}:${setIdx}`;
+    clearTimeout(setValueSaveTimersRef.current[timerKey]);
+    setValueSaveTimersRef.current[timerKey] = setTimeout(() => {
+      api.saveWorkoutSetValue(
+        workoutPlanId,
+        plan.activeDay.id,
+        exercise.exerciseId,
+        setIdx,
+        Number(weight) || 0,
+        Number(reps) || 0
+      ).catch(error => console.error('Failed to save weight and reps:', error));
+      delete setValueSaveTimersRef.current[timerKey];
+    }, 400);
+  };
+
   const handleParamChange = (viewId, setIdx, param, val) => {
     if (param === 'weight') {
+      const weight = parseFloat(val) || 0;
       const newWeights = { ...setWeights };
       newWeights[viewId] = [...newWeights[viewId]];
-      newWeights[viewId][setIdx] = parseFloat(val) || 0;
+      newWeights[viewId][setIdx] = weight;
       setSetWeights(newWeights);
       if (sharedPlan && sharedShareId) {
         const exercise = plan.exercises.find(ex => ex.id === viewId);
-        const actualExerciseId = exercise?.exercise_id;
-        api.saveSharedWorkoutSet(sharedShareId, plan.activeDay?.id, actualExerciseId, setIdx, parseFloat(val) || 0, setReps[viewId][setIdx])
+        const actualExerciseId = exercise?.exerciseId;
+        api.saveSharedWorkoutSet(sharedShareId, plan.activeDay?.id, actualExerciseId, setIdx, weight, setReps[viewId][setIdx])
           .catch(err => console.error('Failed to save shared workout set:', err));
+      } else {
+        scheduleSetValueSave(viewId, setIdx, weight, setReps[viewId][setIdx]);
       }
     } else if (param === 'reps') {
+      const reps = parseInt(val) || 0;
       const newReps = { ...setReps };
       newReps[viewId] = [...newReps[viewId]];
-      newReps[viewId][setIdx] = parseInt(val) || 0;
+      newReps[viewId][setIdx] = reps;
       setSetReps(newReps);
       if (sharedPlan && sharedShareId) {
         const exercise = plan.exercises.find(ex => ex.id === viewId);
-        const actualExerciseId = exercise?.exercise_id;
-        api.saveSharedWorkoutSet(sharedShareId, plan.activeDay?.id, actualExerciseId, setIdx, setWeights[viewId][setIdx], parseInt(val) || 0)
+        const actualExerciseId = exercise?.exerciseId;
+        api.saveSharedWorkoutSet(sharedShareId, plan.activeDay?.id, actualExerciseId, setIdx, setWeights[viewId][setIdx], reps)
           .catch(err => console.error('Failed to save shared workout set:', err));
+      } else {
+        scheduleSetValueSave(viewId, setIdx, setWeights[viewId][setIdx], reps);
       }
     }
   };
@@ -303,6 +363,11 @@ export default function ActiveWorkout({
 
   const handleExerciseNavigation = (newIndex) => {
     setCurrentExerciseIndex(newIndex);
+    const nextExercise = plan?.exercises[newIndex];
+    const firstIncompleteSet = nextExercise
+      ? completedSets[nextExercise.id]?.findIndex(completed => !completed)
+      : -1;
+    setCurrentSetIndex(firstIncompleteSet >= 0 ? firstIncompleteSet : 0);
   };
 
   useEffect(() => {
@@ -325,10 +390,9 @@ export default function ActiveWorkout({
 
   const currentExercise = plan.exercises[currentExerciseIndex];
   const currentExId = currentExercise?.id;
-
-  console.log('INDEX:', currentExerciseIndex);
-  console.log('LENGTH:', plan.exercises.length);
-  console.log('DISABLED:', currentExerciseIndex === plan.exercises.length - 1); 
+  const plannedTargetReps = Number.parseInt(currentExercise?.reps, 10) || 0;
+  const savedTargetReps = Number(setReps[currentExId]?.[currentSetIndex]) || 0;
+  const displayedTargetReps = Math.max(plannedTargetReps, savedTargetReps);
 
   // Check which exercises are fully completed
   const isExerciseFinished = (viewId) => {
@@ -341,7 +405,6 @@ export default function ActiveWorkout({
       {/* Top Session Header */}
       <div className="active-workout-header">
         <div className="active-workout-header__left">
-          <span className="session-pill">In Corso</span>
           <h1 className="session-title">{plan.name}</h1>
           {plan.activeDay && <p className="session-subtitle">{plan.activeDay.name}</p>}
         </div>
@@ -370,54 +433,43 @@ export default function ActiveWorkout({
             )}
           </div>
 
-          {/* Sets Logger */}
-          <div className="exercise-set-list">
-            {Array(currentExercise.sets).fill(null).map((_, setIdx) => {
-              const setLogged = completedSets[currentExId]?.[setIdx] || false;
-              return (
-                <div 
-                  key={setIdx} 
-                  className={`exercise-set-card ${setLogged ? 'exercise-set-card--done' : ''}`}
-                >
+          {/* One set at a time */}
+          <div className="single-set-progress" aria-label={`Serie ${currentSetIndex + 1} di ${currentExercise.sets}`}>
+            <strong>Serie {currentSetIndex + 1} di {currentExercise.sets}</strong>
+            <div className="single-set-dots">
+              {Array.from({ length: currentExercise.sets }, (_, setIdx) => (
+                <button
+                  type="button"
+                  key={setIdx}
+                  aria-label={`Vai alla serie ${setIdx + 1}`}
+                  className={`single-set-dot ${completedSets[currentExId]?.[setIdx] ? 'single-set-dot--done' : ''} ${currentSetIndex === setIdx ? 'single-set-dot--active' : ''}`}
+                  onClick={() => setCurrentSetIndex(setIdx)}
+                />
+              ))}
+            </div>
+          </div>
 
-                  {/* Set Inputs */}
-                  <div className="exercise-set-card-content">
-                    <div className="exercise-set-top">
-                      <div className="set-number-block">
-                        <div className={`set-number-badge ${setLogged ? 'set-number-badge--done' : ''}`}>
-                          {setIdx + 1}
-                        </div>
-                        <div className="set-target">
-                          <span className="set-target-title">Target</span>
-                          <strong className="set-target-value">{currentExercise.reps} reps</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="set-controls">
-                      <div className="set-controls-row">
-                        <div className={setLogged ? 'param-group param-group--disabled' : 'param-group'}>
-                          <span className="param-label">Peso</span>
-                          <Stepper placeholder="kg" value={setWeights[currentExId]?.[setIdx]} onChange={value => handleParamChange(currentExId, setIdx, 'weight', value)} />
-                        </div>
-
-                        <div className={setLogged ? 'param-group param-group--disabled' : 'param-group'}>
-                          <span className="param-label">Rip.</span>
-                          <Stepper min={1} placeholder="rep" value={setReps[currentExId]?.[setIdx]} onChange={value => handleParamChange(currentExId, setIdx, 'reps', value)} />
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleToggleSet(currentExerciseIndex, setIdx)}
-                        className={`set-action-button ${setLogged ? 'set-action-button--done' : 'set-action-button--pending'}`}
-                      >
-                        <Check size={20} className="icon-center" />
-                      </button>
-                    </div>
-                  </div>
+          <div className={`exercise-set-card exercise-set-card--single ${completedSets[currentExId]?.[currentSetIndex] ? 'exercise-set-card--done' : ''}`}>
+            <div className="exercise-set-card-content">
+              <div className="exercise-set-top">
+                <div className="set-number-block">
+                  <div className={`set-number-badge ${completedSets[currentExId]?.[currentSetIndex] ? 'set-number-badge--done' : ''}`}>{currentSetIndex + 1}</div>
+                  <div className="set-target"><span className="set-target-title">Target</span><strong className="set-target-value">{displayedTargetReps} reps</strong></div>
                 </div>
-              );
-            })}
+              </div>
+              <div className="set-controls">
+                <div className="set-controls-row">
+                  <div className={completedSets[currentExId]?.[currentSetIndex] ? 'param-group param-group--disabled' : 'param-group'}><span className="param-label">Peso</span><Stepper placeholder="kg" value={setWeights[currentExId]?.[currentSetIndex]} onChange={value => handleParamChange(currentExId, currentSetIndex, 'weight', value)} /></div>
+                  <div className={completedSets[currentExId]?.[currentSetIndex] ? 'param-group param-group--disabled' : 'param-group'}><span className="param-label">Rip.</span><Stepper min={1} placeholder="rep" value={setReps[currentExId]?.[currentSetIndex]} onChange={value => handleParamChange(currentExId, currentSetIndex, 'reps', value)} /></div>
+                </div>
+                <button onClick={() => handleToggleSet(currentExerciseIndex, currentSetIndex)} className={`set-action-button ${completedSets[currentExId]?.[currentSetIndex] ? 'set-action-button--done' : 'set-action-button--pending'}`}><Check size={20} className="icon-center" /><span>{completedSets[currentExId]?.[currentSetIndex] ? 'Serie completata' : 'Completa serie'}</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div className="single-set-navigation">
+            <button type="button" className="btn-secondary series-nav-button" disabled={currentSetIndex === 0} onClick={() => setCurrentSetIndex(index => index - 1)}><ChevronLeft size={16} /><span>Serie precedente</span></button>
+            <button type="button" className="btn-secondary series-nav-button" disabled={currentSetIndex === currentExercise.sets - 1} onClick={() => setCurrentSetIndex(index => index + 1)}><span>Serie successiva</span><ChevronRight size={16} /></button>
           </div>
 
           {/* Navigation Controls inside Card */}
@@ -425,16 +477,18 @@ export default function ActiveWorkout({
             <button
               onClick={() => handleExerciseNavigation(Math.max(0, currentExerciseIndex - 1))}
               disabled={currentExerciseIndex === 0}
-              className="btn-secondary btn-secondary--block"
+              className="btn-secondary btn-secondary--block exercise-nav-button"
             >
-              Precedente
+              <SkipBack size={16} />
+              <span className="exercise-nav-button__text"><small>Esercizio</small><span>Precedente</span></span>
             </button>
             <button
               onClick={() => handleExerciseNavigation(Math.min(plan.exercises.length - 1, currentExerciseIndex + 1))}
               disabled={currentExerciseIndex === plan.exercises.length - 1}
-              className="btn-secondary btn-secondary--block"
+              className="btn-secondary btn-secondary--block exercise-nav-button"
             >
-              Successivo <SkipForward size={14} />
+              <span className="exercise-nav-button__text"><small>Esercizio</small><span>Successivo</span></span>
+              <SkipForward size={16} />
             </button>
           </div>
         </div>
@@ -442,7 +496,7 @@ export default function ActiveWorkout({
 
       <div
         className="bottom-sheet"
-        style={{ height: `${drawerHeight}px` }}
+        style={{ '--drawer-height': `${drawerHeight}px` }}
       >
         <div className={`bottom-sheet__inner ${showBottomDrawer ? 'bottom-sheet__inner--open' : ''}`}>
           <button
@@ -473,7 +527,7 @@ export default function ActiveWorkout({
                   key={item.id}
                   className={itemClasses}
                   onClick={() => {
-                    setCurrentExerciseIndex(idx);
+                    handleExerciseNavigation(idx);
                     closeDrawer();
                   }}
                 >
@@ -508,7 +562,7 @@ export default function ActiveWorkout({
       {showTimer && (
         <div className="timer-overlay">
           <span className="timer-label">TEMPO DI RECUPERO</span>
-          <h2 className="timer-title">{currentExercise.name}</h2>
+          <h2 className="timer-title">{timerExerciseName}</h2>
 
           {/* Large Circular Countdown Timer */}
           <div className="timer-circle-wrapper">

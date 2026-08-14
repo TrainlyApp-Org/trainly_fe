@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../api';
 import { Dumbbell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Register({ onAuthSuccess, onViewChange }) {
   const navigate = useNavigate();
@@ -89,10 +90,8 @@ export default function Register({ onAuthSuccess, onViewChange }) {
 
           <div className="form-group mb-20">
             <label htmlFor="password">PASSWORD</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
-              className="form-control"
               placeholder="Minimo 6 caratteri"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

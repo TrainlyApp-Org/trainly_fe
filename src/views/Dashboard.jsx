@@ -1,16 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Plus, Play, Trash2, Calendar, Dumbbell, User, LogOut, ChevronRight, Pencil, Share2, X } from 'lucide-react';
+import { Plus, Play, Trash2, Calendar, Dumbbell, User, LogOut, Pencil, Share2, Sparkles, Shield } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import WorkoutPlanViewer from '../components/WorkoutPlanViewer';
 
-export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorkout, onViewProfile, onLogout }) {
+const FREE_WORKOUT_PLAN_LIMIT = 5;
+const WORKOUT_DESCRIPTION_MAX_LENGTH = 40;
+
+const formatCardDescription = (description) => {
+  const value = description?.trim() || '';
+  if (!value) return '\u00A0';
+  return value.length > WORKOUT_DESCRIPTION_MAX_LENGTH
+    ? `${value.slice(0, WORKOUT_DESCRIPTION_MAX_LENGTH).trimEnd()}…`
+    : value;
+};
+
+export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorkout, onViewProfile, onOpenAdmin, onLogout }) {
   const [workoutPlans, setWorkoutPlans] = useState([]);
-  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'history'
   const [userProfile, setUserProfile] = useState(null);
   const [planToStart, setPlanToStart] = useState(null);
-  const [selectedDayId, setSelectedDayId] = useState(null);
+  const [isPremium, setIsPremium] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [deleteModal, setDeleteModal] = useState({
     open: false,
@@ -24,8 +35,14 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
   const fetchData = async () => {
     setLoading(true);
     try {
-      const plansData = await api.getWorkouts();
+      const [plansData, profileData, adminData] = await Promise.all([
+        api.getWorkouts(),
+        api.getProfile(),
+        api.getAdminStatus()
+      ]);
       setWorkoutPlans(plansData.workouts || []);
+      setIsPremium(Boolean(profileData.profile?.is_premium));
+      setIsAdmin(Boolean(adminData.admin));
 
       const storedUser = localStorage.getItem('trainly_user');
 
@@ -103,27 +120,16 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
     }
   };
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getDuration = (start, end) => {
-    if (!start || !end) return '';
-    const diffMs = new Date(end) - new Date(start);
-    const diffMins = Math.round(diffMs / 60000);
-    return `${diffMins} min`;
-  };
-
   const chooseDay = async (plan) => {
     try {
       const details = await api.getWorkoutDetails(plan.id);
       setPlanToStart(details);
-      setSelectedDayId(details.days?.[0]?.id || null);
     } catch (err) {
       alert(err.message || 'Impossibile aprire la scheda.');
     }
   };
+
+  const workoutPlanLimitReached = !isPremium && workoutPlans.length >= FREE_WORKOUT_PLAN_LIMIT;
 
   return (
     <div className="dashboard-page">
@@ -141,28 +147,28 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
           </div>
         </div>
 
-        <button className="dashboard-logout-button" onClick={onLogout} title="Esci">
-          <LogOut size={18} />
-        </button>
-      </div>
-
-      {/* Segmented Controls Tab */}
-      <div className="dashboard-tabs">
-        <div className="dashboard-tab-group">
-          <button
-            onClick={() => setActiveTab('plans')}
-            className={`dashboard-tab ${activeTab === 'plans' ? 'dashboard-tab--active' : 'dashboard-tab--inactive'}`}
-          >
-            Le mie Schede
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`dashboard-tab ${activeTab === 'history' ? 'dashboard-tab--active' : 'dashboard-tab--inactive'}`}
-          >
-            Cronologia
+        <div className="dashboard-header-actions">
+          {isAdmin && (
+            <button className="dashboard-logout-button" onClick={onOpenAdmin} title="Dashboard amministratore">
+              <Shield size={18} />
+            </button>
+          )}
+          <button className="dashboard-logout-button" onClick={onLogout} title="Esci">
+            <LogOut size={18} />
           </button>
         </div>
       </div>
+
+      {isPremium === false && (
+        <aside className="dashboard-promo-ad" aria-label="Contenuto promozionale" data-ad-slot="dashboard-workouts-banner">
+          <div className="dashboard-promo-ad__icon"><Sparkles size={18} /></div>
+          <div className="dashboard-promo-ad__content">
+            <span>Pubblicità</span>
+            <strong>Passa a Trainly Premium</strong>
+            <p>Allenati senza pubblicità e crea schede senza limiti.</p>
+          </div>
+        </aside>
+      )}
 
       {/* Main Content Area */}
       <div className="dashboard-content">
@@ -171,7 +177,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
             <Dumbbell size={28} className="pulse-effect dashboard-loading-icon" />
             Caricamento in corso...
           </div>
-        ) : activeTab === 'plans' ? (
+        ) : (
           <>
             {workoutPlans.length === 0 ? (
               <div className="dashboard-empty-card">
@@ -212,11 +218,12 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                       <h3 className="dashboard-card-title">{plan.name}</h3>
                     </div>
 
-                    {plan.description && (
-                      <p className="dashboard-card-description">
-                        {plan.description}
-                      </p>
-                    )}
+                    <p
+                      className={`dashboard-card-description ${plan.description?.trim() ? '' : 'dashboard-card-description--empty'}`}
+                      title={plan.description || undefined}
+                    >
+                      {formatCardDescription(plan.description)}
+                    </p>
 
                     {(plan.days || []).length > 0 && (
                       <p className="dashboard-card-days">
@@ -240,78 +247,25 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                 <button 
                   className="btn-primary dashboard-fixed-action" 
                   onClick={onCreateWorkout}
+                  disabled={workoutPlanLimitReached}
+                  title={workoutPlanLimitReached ? 'Limite di 5 schede raggiunto' : undefined}
                 >
-                  <Plus size={20} /> Crea Nuova Scheda
+                  {workoutPlanLimitReached
+                    ? 'Limite di 5 schede raggiunto'
+                    : <><Plus size={20} /> Crea Nuova Scheda</>}
                 </button>
               </div>
             )}
           </>
-        ) : (
-          <div className="dashboard-history-list">
-            {history.length === 0 ? (
-              <div className="dashboard-empty-card">
-                <Calendar size={36} className="dashboard-loading-icon" />
-                <h3>Ancora nessun allenamento</h3>
-                <p>Gli allenamenti che completi verranno mostrati qui con statistiche e date.</p>
-              </div>
-            ) : (
-              history.map(log => (
-                <div key={log.id} className="glass-panel dashboard-history-card">
-                  <div>
-                    <h4 className="dashboard-history-summary">
-                      {log.workout_plan?.name || 'Allenamento Libero'}
-                    </h4>
-                    <div className="dashboard-history-meta">
-                      <span>{formatDate(log.started_at)}</span>
-                      <span>•</span>
-                      <span className="dashboard-history-duration">
-                        {getDuration(log.started_at, log.completed_at)}
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} className="icon-muted" />
-                </div>
-              ))
-            )}
-          </div>
         )}
       </div>
       {planToStart && (
         <div className="dashboard-modal-overlay">
-          <div className="dashboard-modal-panel" onClick={e => e.stopPropagation()}>
-            <div className="dashboard-modal-header">
-              <h2 className="dashboard-modal-title">{planToStart.name}</h2>
-              <div><button className="dashboard-modal-close" onClick={() => setPlanToStart(null)}><X size={16}/></button></div>
-            </div>
-            {planToStart.description && <p className="dashboard-modal-description">{planToStart.description}</p>}
-            <div className="dashboard-modal-day-tabs">
-              {planToStart.days?.map(day => (
-                <button
-                  key={day.id}
-                  onClick={() => setSelectedDayId(day.id)}
-                  className={`dashboard-modal-day-pill ${selectedDayId === day.id ? 'dashboard-modal-day-pill--active' : ''}`}
-                >
-                  {day.name}
-                </button>
-              ))}
-            </div>
-            {(() => {
-              const day = planToStart.days?.find(item => item.id === selectedDayId) || planToStart.days?.[0];
-              return <>
-                <h3 className="dashboard-modal-subtitle">Esercizi da fare</h3>
-                <div className="dashboard-modal-exercise-list">
-                  {day.exercises.map((exercise, index) => (
-                    <div key={exercise.id} className="dashboard-exercise-item">
-                      <strong>{index + 1}. {exercise.name}</strong>
-                      <span>{exercise.sets} × {exercise.reps}</span>
-                      <span>| Rest: {exercise.restTime} sec</span>
-                    </div>
-                  ))}
-                </div>
-                <button className="btn-primary" onClick={() => onStartWorkout(planToStart.id, day.id)}><Play size={16} fill="currentColor" /> Avvia {day.name}</button>
-              </>;
-            })()}
-          </div>
+          <WorkoutPlanViewer
+            plan={planToStart}
+            onBack={() => setPlanToStart(null)}
+            onStart={dayId => onStartWorkout(planToStart.id, dayId)}
+          />
         </div>
       )}
 

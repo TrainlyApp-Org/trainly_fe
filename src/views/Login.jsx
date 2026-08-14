@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api';
-import { Dumbbell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Login({ onAuthSuccess, onViewChange }) {
   const navigate = useNavigate();
@@ -48,10 +48,10 @@ export default function Login({ onAuthSuccess, onViewChange }) {
     <div className="login-screen auth-screen--centered">
       <div className="auth-brand">
         <div className="auth-brand-icon">
-          <Dumbbell size={40} className="pulse-effect" />
+          <img className="auth-brand-logo" src="/favicon.svg" alt="Logo Trainly" />
         </div>
         <h1 className="auth-heading">
-          Train<span className="auth-heading-accent">ly</span>
+          Trainl<span className="auth-heading-accent">y</span>
         </h1>
         <p className="auth-subtitle">
           Il tuo personal trainer in tasca, pronto all'uso.
@@ -78,10 +78,8 @@ export default function Login({ onAuthSuccess, onViewChange }) {
 
           <div className="form-group mb-24">
             <label htmlFor="password">PASSWORD</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
-              className="form-control"
               placeholder="Inserisci la password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
