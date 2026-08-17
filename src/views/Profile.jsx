@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { User, Save, ArrowLeft, LockKeyhole, Star } from 'lucide-react';
+import { User, Save, ArrowLeft, LockKeyhole, Star, Clock3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordInput from '../components/PasswordInput';
+import LegalFooter from '../components/LegalFooter';
 
 export default function Profile({ onBack }) {
   const navigate = useNavigate();
@@ -165,6 +166,27 @@ export default function Profile({ onBack }) {
             </div>
           </div>
 
+          <div className="glass-panel profile-billing-panel">
+            <div className="profile-section-title">
+              <Star size={18} />
+              <h2>Trainly Premium</h2>
+            </div>
+
+            <p className="profile-billing-description">
+              {isPremium
+                ? 'Il tuo account include schede illimitate e nessuna pubblicità.'
+                : 'Passa a Premium per creare schede illimitate e rimuovere la pubblicità.'}
+            </p>
+
+            <div className="profile-billing-coming-soon" role="status">
+              <Clock3 size={18} aria-hidden="true" />
+              <div>
+                <strong>Abbonamenti disponibili presto</strong>
+                <span>Durante questa fase beta gli account Premium vengono abilitati manualmente.</span>
+              </div>
+            </div>
+          </div>
+
           <div className="glass-panel profile-password-panel">
             <div className="profile-section-title">
               <LockKeyhole size={18} />
@@ -227,6 +249,7 @@ export default function Profile({ onBack }) {
             <Save size={18} />
             {saving ? 'Salvataggio...' : 'Salva Modifiche'}
           </button>
+          <LegalFooter />
         </form>
       )}
     </div>

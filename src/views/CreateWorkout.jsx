@@ -320,7 +320,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
                 onClick={() => setShowAddModal(true)} 
                 className="btn-secondary create-workout-add-button"
               >
-                <Plus size={16} /> Aggiungi altro esercizio
+                <Plus size={16} /> Aggiungi esercizio
               </button>
             </div>
           )}

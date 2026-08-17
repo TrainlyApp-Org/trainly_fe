@@ -12,6 +12,11 @@ import ActiveWorkout from './views/ActiveWorkout';
 import SharedWorkout from './views/SharedWorkout';
 import AdminDashboard from './views/AdminDashboard';
 import AdminAccountDetails from './views/AdminAccountDetails';
+import Home from './views/Home';
+import DeviceExperienceNotice from './components/DeviceExperienceNotice';
+import ForgotPassword from './views/ForgotPassword';
+import ResetPassword from './views/ResetPassword';
+import LegalPage from './views/LegalPage';
 
 function RequireAuth({ user, children }) {
   if (!user) {
@@ -36,6 +41,18 @@ export default function App() {
     }
     setInitializing(false);
   }, []);
+
+  // Supabase may fall back to the configured Site URL while keeping the
+  // recovery session in the URL fragment. Route that session to the reset UI.
+  useEffect(() => {
+    const recoveryParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const isPasswordRecovery = recoveryParams.get('type') === 'recovery'
+      && Boolean(recoveryParams.get('access_token'));
+
+    if (isPasswordRecovery && location.pathname !== '/reset-password') {
+      navigate(`/reset-password${location.hash}`, { replace: true });
+    }
+  }, [location.hash, location.pathname, navigate]);
 
   // Handle backward compatibility for ?share=XYZ links
   useEffect(() => {
@@ -75,10 +92,12 @@ export default function App() {
 
   return (
     <div className={`app-container ${isAdminDashboard ? 'app-container--admin' : ''}`}>
+      <DeviceExperienceNotice />
       <div className={`phone-frame ${isAdminDashboard ? 'phone-frame--admin' : ''}`}>
         <div className={`${viewportClasses} ${isAdminDashboard ? 'phone-viewport--admin' : ''}`}>
           <Routes>
             {/* Public Routes */}
+            <Route path="/" element={<Home authenticated={Boolean(user)} />} />
             <Route 
               path="/login" 
               element={user ? <Navigate to="/dashboard" replace /> : <Login onAuthSuccess={handleAuthSuccess} />} 
@@ -87,20 +106,19 @@ export default function App() {
               path="/register" 
               element={user ? <Navigate to="/dashboard" replace /> : <Register onAuthSuccess={handleAuthSuccess} />} 
             />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/legal/:document" element={<LegalPage />} />
+            <Route path="/privacy" element={<Navigate to="/legal/privacy" replace />} />
+            <Route path="/cookies" element={<Navigate to="/legal/cookies" replace />} />
+            <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
+            <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
             <Route 
               path="/shared/:shareId" 
               element={<SharedWorkout />} 
             />
 
             {/* Protected Routes */}
-            <Route 
-              path="/" 
-              element={
-                <RequireAuth user={user}>
-                  <Navigate to="/dashboard" replace />
-                </RequireAuth>
-              } 
-            />
             <Route 
               path="/dashboard" 
               element={

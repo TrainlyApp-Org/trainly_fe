@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
-import { AlertTriangle, ArrowLeft, Dumbbell, Shield, Star, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CreditCard, Dumbbell, Shield, Star, UserRound } from 'lucide-react';
 
 export default function AdminAccountDetails({ onBack }) {
   const { profileId } = useParams();
@@ -10,6 +10,7 @@ export default function AdminAccountDetails({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] = useState('manual');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -35,6 +36,24 @@ export default function AdminAccountDetails({ onBack }) {
     }
   };
 
+  const cancelSubscription = async () => {
+    setUpdating(true);
+    setError('');
+    try {
+      setAccount(await api.cancelAdminAccountSubscription(profileId));
+      setConfirmationOpen(false);
+    } catch (err) {
+      setError(err.message || 'Impossibile disattivare il rinnovo dell’abbonamento.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const openConfirmation = action => {
+    setConfirmationAction(action);
+    setConfirmationOpen(true);
+  };
+
   return <main className="admin-dashboard">
     <header className="admin-header">
       <div className="admin-header-brand"><div className="admin-mark"><Shield size={24} /></div><div><span>Trainly Admin</span><h1>Dettaglio profilo</h1></div></div>
@@ -44,7 +63,26 @@ export default function AdminAccountDetails({ onBack }) {
     {loading ? <div className="admin-panel admin-empty">Caricamento profilo…</div> : account && <>
       <section className="admin-profile-card">
         <div className="admin-profile-main"><div className="admin-profile-avatar"><UserRound size={30} /></div><div><span className="admin-tier-label">Profilo utente</span><h2>{account.full_name || account.username || 'Utente'}</h2><p>@{account.username || '—'}</p><p className="admin-profile-created">Registrato il {account.created_at ? new Date(account.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}</p><code>{account.id}</code></div></div>
-        <div className="admin-profile-actions"><span className={`admin-tier ${account.is_premium ? 'admin-tier--premium' : ''}`}>{account.is_premium && <Star size={13} fill="currentColor" />}{account.is_premium ? 'Premium' : 'Free'}</span><button className={`admin-button ${account.is_premium ? 'admin-button--secondary' : 'admin-button--premium'}`} onClick={() => setConfirmationOpen(true)}>{account.is_premium ? 'Passa a Free' : <><Star size={16} fill="currentColor" /> Promuovi a Premium</>}</button></div>
+        <div className="admin-profile-actions">
+          <span className={`admin-tier ${account.is_premium ? 'admin-tier--premium' : ''}`}>{account.is_premium && <Star size={13} fill="currentColor" />}{account.is_premium ? 'Premium' : 'Free'}</span>
+          {account.billing_managed ? <>
+            <span className="admin-billing-managed"><CreditCard size={14} /> Gestito da Stripe</span>
+            <button
+              className="admin-button admin-button--secondary"
+              disabled={account.cancel_at_period_end}
+              onClick={() => openConfirmation('cancel-subscription')}
+            >
+              {account.cancel_at_period_end ? 'Rinnovo disattivato' : 'Disattiva rinnovo'}
+            </button>
+          </> : (
+            <button
+              className={`admin-button ${account.is_premium ? 'admin-button--secondary' : 'admin-button--premium'}`}
+              onClick={() => openConfirmation('manual')}
+            >
+              {account.is_premium ? 'Passa a Free' : <><Star size={16} fill="currentColor" /> Promuovi a Premium</>}
+            </button>
+          )}
+        </div>
       </section>
       <section className="admin-detail-heading"><div><Dumbbell size={21} /><div><h2>Schede di allenamento</h2><p>Tutti i giorni e gli esercizi creati da questo account.</p></div></div><strong>{workouts.length}</strong></section>
       <section className="admin-workout-grid">
@@ -57,11 +95,14 @@ export default function AdminAccountDetails({ onBack }) {
     {confirmationOpen && account && <div className="modal-overlay" onClick={() => !updating && setConfirmationOpen(false)}>
       <div className="modal-card admin-confirmation-modal" role="alertdialog" aria-modal="true" aria-labelledby="account-confirmation-title" onClick={event => event.stopPropagation()}>
         <div className="admin-confirmation-icon"><AlertTriangle size={25} /></div>
-        <h2 id="account-confirmation-title">Conferma modifica account</h2>
-        <p>Vuoi davvero {account.is_premium ? 'passare a Free' : 'promuovere a Premium'} l’account <strong>{account.full_name || account.username || 'selezionato'}</strong>?</p>
+        <h2 id="account-confirmation-title">{confirmationAction === 'cancel-subscription' ? 'Disattiva rinnovo' : 'Conferma modifica account'}</h2>
+        <p>{confirmationAction === 'cancel-subscription'
+          ? <>Vuoi disattivare il rinnovo Stripe dell’account <strong>{account.full_name || account.username || 'selezionato'}</strong>? L’utente manterrà Premium fino alla fine del periodo già pagato.</>
+          : <>Vuoi davvero {account.is_premium ? 'passare a Free' : 'promuovere a Premium'} l’account <strong>{account.full_name || account.username || 'selezionato'}</strong>?</>}
+        </p>
         <div className="modal-actions">
           <button disabled={updating} className="admin-button admin-button--secondary" onClick={() => setConfirmationOpen(false)}>Annulla</button>
-          <button disabled={updating} className="admin-button" onClick={togglePremium}>{updating ? 'Aggiornamento…' : 'Conferma'}</button>
+          <button disabled={updating} className="admin-button" onClick={confirmationAction === 'cancel-subscription' ? cancelSubscription : togglePremium}>{updating ? 'Aggiornamento…' : 'Conferma'}</button>
         </div>
       </div>
     </div>}

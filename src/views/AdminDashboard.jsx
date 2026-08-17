@@ -10,7 +10,7 @@ export default function AdminDashboard({ onBack, onLogout }) {
   const [accounts, setAccounts] = useState([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
-  const [pagination, setPagination] = useState({ totalElements: 0, totalPages: 0, totalAccounts: 0, premiumAccounts: 0, workoutPlans: 0 });
+  const [pagination, setPagination] = useState({ totalElements: 0, totalPages: 0, totalAccounts: 0, premiumAccounts: 0, stripePremiumAccounts: 0, manualPremiumAccounts: 0, workoutPlans: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -26,6 +26,8 @@ export default function AdminDashboard({ onBack, onLogout }) {
           totalPages: data.totalPages || 0,
           totalAccounts: data.totalAccounts || 0,
           premiumAccounts: data.premiumAccounts || 0,
+          stripePremiumAccounts: data.stripePremiumAccounts || 0,
+          manualPremiumAccounts: data.manualPremiumAccounts || 0,
           workoutPlans: data.workoutPlans || 0,
         });
       } catch (err) {
@@ -57,7 +59,7 @@ export default function AdminDashboard({ onBack, onLogout }) {
 
       <section className="admin-summary-grid">
         <div className="admin-summary-card"><UserRound /><div><strong>{pagination.totalAccounts}</strong><span>Account registrati</span></div></div>
-        <div className="admin-summary-card admin-summary-card--premium"><Star fill="currentColor" /><div><strong>{pagination.premiumAccounts}</strong><span>Account premium</span></div></div>
+        <div className="admin-summary-card admin-summary-card--premium"><Star fill="currentColor" /><div><strong>{pagination.premiumAccounts}</strong><span>Account premium</span><div className="admin-premium-breakdown"><small><b>{pagination.stripePremiumAccounts}</b> Stripe</small><small><b>{pagination.manualPremiumAccounts}</b> Manuali</small></div></div></div>
         <div className="admin-summary-card"><Dumbbell /><div><strong>{pagination.workoutPlans}</strong><span>Schede create</span></div></div>
       </section>
 
@@ -73,7 +75,7 @@ export default function AdminDashboard({ onBack, onLogout }) {
             <tbody>{accounts.map(account => (
               <tr key={account.id}>
                 <td><strong>{account.full_name || account.username || 'Utente'}</strong><span>@{account.username || '—'} · {account.id}</span></td>
-                <td><span className={`admin-tier ${account.is_premium ? 'admin-tier--premium' : ''}`}>{account.is_premium && <Star size={13} fill="currentColor" />} {account.is_premium ? 'Premium' : 'Free'}</span></td>
+                <td><span className={`admin-tier ${account.is_premium ? 'admin-tier--premium' : ''}`}>{account.is_premium && <Star size={13} fill="currentColor" />} {account.is_premium ? `Premium${account.billing_managed ? ' · Stripe' : ''}` : 'Free'}</span></td>
                 <td>{account.workout_count}</td>
                 <td>{account.created_at ? new Date(account.created_at).toLocaleDateString('it-IT') : '—'}</td>
                 <td>{account.updated_at ? new Date(account.updated_at).toLocaleDateString('it-IT') : '—'}</td>

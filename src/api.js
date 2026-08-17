@@ -151,17 +151,35 @@ export const api = {
     return data;
   },
 
-  async register(email, password, username, fullName) {
+  async register(email, password, username, fullName, adultConfirmed, termsAccepted, privacyAcknowledged) {
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, username, fullName }),
+      body: JSON.stringify({ email, password, username, fullName, adultConfirmed, termsAccepted, privacyAcknowledged }),
     });
     const data = await handleResponse(res);
     if (data.access_token) {
       saveAuth(data);
     }
     return data;
+  },
+
+  async forgotPassword(email) {
+    const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return handleResponse(res);
+  },
+
+  async resetPassword(accessToken, newPassword) {
+    const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken, newPassword }),
+    });
+    return handleResponse(res);
   },
 
   logout() {
@@ -185,6 +203,25 @@ export const api = {
     const res = await authenticatedFetch(`${API_BASE_URL}/auth/password`, {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    return handleResponse(res);
+  },
+
+  async getBillingStatus() {
+    const res = await authenticatedFetch(`${API_BASE_URL}/billing/status`);
+    return handleResponse(res);
+  },
+
+  async createBillingCheckout() {
+    const res = await authenticatedFetch(`${API_BASE_URL}/billing/checkout`, {
+      method: 'POST',
+    });
+    return handleResponse(res);
+  },
+
+  async createBillingPortal() {
+    const res = await authenticatedFetch(`${API_BASE_URL}/billing/portal`, {
+      method: 'POST',
     });
     return handleResponse(res);
   },
@@ -214,6 +251,13 @@ export const api = {
     const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}/premium`, {
       method: 'PATCH',
       body: JSON.stringify({ premium }),
+    });
+    return handleResponse(res);
+  },
+
+  async cancelAdminAccountSubscription(profileId) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}/subscription/cancel`, {
+      method: 'POST',
     });
     return handleResponse(res);
   },

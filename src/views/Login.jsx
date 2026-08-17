@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { api } from '../api';
 import { useNavigate } from 'react-router-dom';
 import PasswordInput from '../components/PasswordInput';
+import { ArrowLeft } from 'lucide-react';
+import LegalFooter from '../components/LegalFooter';
 
 export default function Login({ onAuthSuccess, onViewChange }) {
   const navigate = useNavigate();
@@ -46,6 +48,16 @@ export default function Login({ onAuthSuccess, onViewChange }) {
 
   return (
     <div className="login-screen auth-screen--centered">
+      <button
+        type="button"
+        className="shared-workout-back-button auth-login-back"
+        onClick={() => navigate('/')}
+        aria-label="Torna alla pagina principale"
+        title="Torna alla pagina principale"
+      >
+        <ArrowLeft size={20} />
+      </button>
+      <div className="auth-login-content">
       <div className="auth-brand">
         <div className="auth-brand-icon">
           <img className="auth-brand-logo" src="/favicon.svg" alt="Logo Trainly" />
@@ -85,6 +97,15 @@ export default function Login({ onAuthSuccess, onViewChange }) {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <div className="auth-forgot-password">
+              <button
+                type="button"
+                className="auth-link-button"
+                onClick={() => navigate('/forgot-password')}
+              >
+                Password dimenticata?
+              </button>
+            </div>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
@@ -104,6 +125,8 @@ export default function Login({ onAuthSuccess, onViewChange }) {
           </button>
         </p>
       </div>
+      </div>
+      <LegalFooter />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { api } from '../api';
-import { Dumbbell } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import PasswordInput from '../components/PasswordInput';
+import LegalFooter from '../components/LegalFooter';
 
 export default function Register({ onAuthSuccess, onViewChange }) {
   const navigate = useNavigate();
@@ -11,18 +12,21 @@ export default function Register({ onAuthSuccess, onViewChange }) {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password || !adultConfirmed || !termsAccepted || !privacyAcknowledged) return;
 
     setLoading(true);
     setError('');
 
     try {
-      const data = await api.register(email, password, username, fullName);
+      const data = await api.register(email, password, username, fullName, adultConfirmed, termsAccepted, privacyAcknowledged);
       onAuthSuccess(data.user);
     } catch (err) {
       setError(err.message || 'Errore durante la registrazione.');
@@ -33,10 +37,17 @@ export default function Register({ onAuthSuccess, onViewChange }) {
 
   return (
     <div className="register-screen auth-screen--centered">
+      <button
+        type="button"
+        className="shared-workout-back-button auth-register-back"
+        onClick={() => navigate('/login')}
+        aria-label="Torna alla pagina di accesso"
+        title="Torna alla pagina di accesso"
+      >
+        <ArrowLeft size={20} />
+      </button>
       <div className="register-brand">
-        <div className="register-brand-icon">
-          <Dumbbell size={32} className="pulse-effect" />
-        </div>
+        <div className="register-brand-icon register-brand-spacer" aria-hidden="true" />
         <h1 className="register-heading">
           Registrati su Train<span className="auth-heading-accent">ly</span>
         </h1>
@@ -99,7 +110,27 @@ export default function Register({ onAuthSuccess, onViewChange }) {
             />
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <label className="legal-confirmation">
+            <input
+              type="checkbox"
+              checked={adultConfirmed}
+              onChange={(event) => setAdultConfirmed(event.target.checked)}
+              required
+            />
+            <span>Confermo di avere almeno 18 anni.</span>
+          </label>
+
+          <label className="legal-confirmation">
+            <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} required />
+            <span>Accetto i <Link to="/terms" target="_blank">Termini e condizioni</Link>.</span>
+          </label>
+
+          <label className="legal-confirmation">
+            <input type="checkbox" checked={privacyAcknowledged} onChange={(event) => setPrivacyAcknowledged(event.target.checked)} required />
+            <span>Dichiaro di aver letto l’<Link to="/privacy" target="_blank">Informativa privacy</Link>.</span>
+          </label>
+
+          <button type="submit" className="btn-primary" disabled={loading || !adultConfirmed || !termsAccepted || !privacyAcknowledged}>
             {loading ? 'Registrazione...' : 'Crea Account'}
           </button>
         </form>
@@ -116,6 +147,7 @@ export default function Register({ onAuthSuccess, onViewChange }) {
           </button>
         </p>
       </div>
+      <LegalFooter />
     </div>
   );
 }

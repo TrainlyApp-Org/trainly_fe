@@ -163,9 +163,9 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
         <aside className="dashboard-promo-ad" aria-label="Contenuto promozionale" data-ad-slot="dashboard-workouts-banner">
           <div className="dashboard-promo-ad__icon"><Sparkles size={18} /></div>
           <div className="dashboard-promo-ad__content">
-            <span>Pubblicità</span>
-            <strong>Passa a Trainly Premium</strong>
-            <p>Allenati senza pubblicità e crea schede senza limiti.</p>
+            <span>Prossimamente</span>
+            <strong>Trainly Premium</strong>
+            <p>Gli abbonamenti mensili saranno disponibili presto.</p>
           </div>
         </aside>
       )}
@@ -184,7 +184,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                 <Dumbbell size={36} className="dashboard-loading-icon" />
                 <h3>Nessuna scheda creata</h3>
                 <p>Crea la tua prima scheda per organizzare gli allenamenti e tracciare i progressi.</p>
-                <button className="btn-primary dashboard-empty-action" onClick={onCreateWorkout}>
+                <button className="btn-primary shared-workout-start-button dashboard-empty-action" onClick={onCreateWorkout}>
                   <Plus size={18} /> Nuova Scheda
                 </button>
               </div>
@@ -245,7 +245,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                 ))}
 
                 <button 
-                  className="btn-primary dashboard-fixed-action" 
+                  className="btn-primary shared-workout-start-button dashboard-fixed-action" 
                   onClick={onCreateWorkout}
                   disabled={workoutPlanLimitReached}
                   title={workoutPlanLimitReached ? 'Limite di 5 schede raggiunto' : undefined}

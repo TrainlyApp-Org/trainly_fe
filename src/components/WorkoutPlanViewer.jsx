@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Play } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function WorkoutPlanViewer({ plan, onBack, onStart, footerText }) {
   const [selectedDayId, setSelectedDayId] = useState(null);
@@ -29,6 +30,11 @@ export default function WorkoutPlanViewer({ plan, onBack, onStart, footerText })
         <button className="btn-primary shared-workout-start-button" onClick={() => onStart(day.id)}>
           <Play size={16} fill="currentColor" /> Avvia allenamento
         </button>
+        <p className="workout-safety-note">
+          Trainly non sostituisce il parere medico. Se sei minorenne, allenati con la supervisione
+          di un adulto o professionista. Interrompi l’attività in caso di dolore o malessere.{' '}
+          <Link to="/disclaimer">Leggi le avvertenze complete</Link>.
+        </p>
       </div>
     );
   }

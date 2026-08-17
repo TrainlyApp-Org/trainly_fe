@@ -67,10 +67,39 @@ create trigger prevent_self_premium_change
   before update on public.profiles
   for each row execute procedure public.prevent_self_premium_change();
 
+-- Stripe billing state. These tables are written only by the backend after
+-- creating a Checkout session or validating a signed Stripe webhook.
+create table if not exists public.billing_subscriptions (
+  id uuid default uuid_generate_v4() primary key,
+  profile_id uuid references public.profiles(id) on delete cascade not null unique,
+  stripe_customer_id text not null unique,
+  stripe_subscription_id text unique,
+  stripe_price_id text,
+  status text not null default 'inactive',
+  cancel_at_period_end boolean not null default false,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.stripe_webhook_events (
+  event_id text primary key,
+  event_type text not null,
+  processed_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.billing_subscriptions enable row level security;
+alter table public.stripe_webhook_events enable row level security;
+
+create policy "Users can read their own billing subscription"
+  on public.billing_subscriptions
+  for select
+  to authenticated
+  using (profile_id = auth.uid());
+
 -- 2. Categories Table
 create table if not exists public.categories (
   id uuid default uuid_generate_v4() primary key,
   name text not null unique,
+  name_it text,
   description text,
   icon text
 );
@@ -87,8 +116,10 @@ create policy "Categories are viewable by authenticated users"
 create table if not exists public.exercises (
   id uuid default uuid_generate_v4() primary key,
   name text not null,
+  name_it text,
   category_id uuid references public.categories(id) on delete cascade not null,
   description text,
+  description_it text,
   is_custom boolean default false not null,
   created_by uuid references public.profiles(id) on delete cascade,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
