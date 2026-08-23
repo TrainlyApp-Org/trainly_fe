@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
-import { AlertTriangle, ArrowLeft, CreditCard, Dumbbell, Shield, Star, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CreditCard, Dumbbell, KeyRound, Shield, Star, UserRound } from 'lucide-react';
+import PageLoader from '../components/PageLoader';
 
 export default function AdminAccountDetails({ onBack }) {
   const { profileId } = useParams();
@@ -12,6 +13,7 @@ export default function AdminAccountDetails({ onBack }) {
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState('manual');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     Promise.all([api.getAdminAccount(profileId), api.getAdminAccountWorkouts(profileId)])
@@ -54,17 +56,36 @@ export default function AdminAccountDetails({ onBack }) {
     setConfirmationOpen(true);
   };
 
+  const resetPassword = async () => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+    try {
+      const result = await api.resetAdminAccountPassword(profileId);
+      setSuccess(`Password reimpostata: ${result.default_password}`);
+      setConfirmationOpen(false);
+    } catch (err) {
+      setError(err.message || 'Impossibile reimpostare la password.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return <main className="admin-dashboard">
     <header className="admin-header">
       <div className="admin-header-brand"><div className="admin-mark"><Shield size={24} /></div><div><span>Trainly Admin</span><h1>Dettaglio profilo</h1></div></div>
       <button className="admin-button admin-button--secondary" onClick={onBack}><ArrowLeft size={17} /> Tutti gli account</button>
     </header>
     {error && <div className="admin-error admin-content-width">{error}</div>}
-    {loading ? <div className="admin-panel admin-empty">Caricamento profilo…</div> : account && <>
+    {success && <div className="admin-success admin-content-width" role="status">{success}</div>}
+    {loading ? <PageLoader className="page-loader--admin" label="Caricamento profilo…" /> : account && <>
       <section className="admin-profile-card">
         <div className="admin-profile-main"><div className="admin-profile-avatar"><UserRound size={30} /></div><div><span className="admin-tier-label">Profilo utente</span><h2>{account.full_name || account.username || 'Utente'}</h2><p>@{account.username || '—'}</p><p className="admin-profile-created">Registrato il {account.created_at ? new Date(account.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}</p><code>{account.id}</code></div></div>
         <div className="admin-profile-actions">
           <span className={`admin-tier ${account.is_premium ? 'admin-tier--premium' : ''}`}>{account.is_premium && <Star size={13} fill="currentColor" />}{account.is_premium ? 'Premium' : 'Free'}</span>
+          <button className="admin-button admin-button--secondary" onClick={() => openConfirmation('reset-password')}>
+            <KeyRound size={16} /> Reimposta password
+          </button>
           {account.billing_managed ? <>
             <span className="admin-billing-managed"><CreditCard size={14} /> Gestito da Stripe</span>
             <button
@@ -95,14 +116,16 @@ export default function AdminAccountDetails({ onBack }) {
     {confirmationOpen && account && <div className="modal-overlay" onClick={() => !updating && setConfirmationOpen(false)}>
       <div className="modal-card admin-confirmation-modal" role="alertdialog" aria-modal="true" aria-labelledby="account-confirmation-title" onClick={event => event.stopPropagation()}>
         <div className="admin-confirmation-icon"><AlertTriangle size={25} /></div>
-        <h2 id="account-confirmation-title">{confirmationAction === 'cancel-subscription' ? 'Disattiva rinnovo' : 'Conferma modifica account'}</h2>
+        <h2 id="account-confirmation-title">{confirmationAction === 'cancel-subscription' ? 'Disattiva rinnovo' : confirmationAction === 'reset-password' ? 'Reimposta password' : 'Conferma modifica account'}</h2>
         <p>{confirmationAction === 'cancel-subscription'
           ? <>Vuoi disattivare il rinnovo Stripe dell’account <strong>{account.full_name || account.username || 'selezionato'}</strong>? L’utente manterrà Premium fino alla fine del periodo già pagato.</>
+          : confirmationAction === 'reset-password'
+            ? <>Vuoi reimpostare la password di <strong>{account.full_name || account.username || 'questo account'}</strong> a <code>{account.username}_ty</code>?</>
           : <>Vuoi davvero {account.is_premium ? 'passare a Free' : 'promuovere a Premium'} l’account <strong>{account.full_name || account.username || 'selezionato'}</strong>?</>}
         </p>
         <div className="modal-actions">
           <button disabled={updating} className="admin-button admin-button--secondary" onClick={() => setConfirmationOpen(false)}>Annulla</button>
-          <button disabled={updating} className="admin-button" onClick={confirmationAction === 'cancel-subscription' ? cancelSubscription : togglePremium}>{updating ? 'Aggiornamento…' : 'Conferma'}</button>
+          <button disabled={updating} className="admin-button" onClick={confirmationAction === 'cancel-subscription' ? cancelSubscription : confirmationAction === 'reset-password' ? resetPassword : togglePremium}>{updating ? 'Aggiornamento…' : 'Conferma'}</button>
         </div>
       </div>
     </div>}

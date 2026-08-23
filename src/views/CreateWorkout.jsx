@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { ArrowLeft, Save, Plus, Trash2, Search, Dumbbell, ChevronRight, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Search, ChevronRight, X, AlertTriangle } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import PageLoader from '../components/PageLoader';
 
 const WORKOUT_DESCRIPTION_MAX_LENGTH = 40;
 
@@ -39,6 +40,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   // Selector state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -52,8 +54,15 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
   const [customDesc, setCustomDesc] = useState('');
 
   useEffect(() => {
-    fetchExerciseLibrary();
-    if (workoutId) loadWorkout();
+    const loadPageData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchExerciseLibrary(),
+        workoutId ? loadWorkout() : Promise.resolve()
+      ]);
+      setLoading(false);
+    };
+    loadPageData();
   }, []);
 
   const loadWorkout = async () => {
@@ -64,7 +73,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
       setDays(plan.days || []);
       setActiveDayId(plan.days?.[0]?.id || null);
     } catch (err) {
-      setError('Impossibile caricare la scheda.');
+      setLoadError('Impossibile caricare la scheda.');
     }
   };
 
@@ -89,10 +98,11 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
   };
 
   const fetchExerciseLibrary = async () => {
-    setLoading(true);
     try {
-      const catsData = await api.getCategories();
-      const exData = await api.getExercises();
+      const [catsData, exData] = await Promise.all([
+        api.getCategories(),
+        api.getExercises()
+      ]);
       setCategories(catsData.categories || []);
       setExercises(exData.exercises || []);
       if (catsData.categories && catsData.categories.length > 0) {
@@ -101,8 +111,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
       }
     } catch (err) {
       console.error('Error fetching exercise library:', err);
-    } finally {
-      setLoading(false);
+      setLoadError('Impossibile caricare la libreria degli esercizi.');
     }
   };
 
@@ -181,6 +190,14 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
     const matchesCategory = ex.categoryId === selectedCategoryTab;
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return <div className="create-workout-page"><PageLoader label={workoutId ? 'Caricamento scheda…' : 'Caricamento esercizi…'} /></div>;
+  }
+
+  if (loadError) {
+    return <div className="create-workout-page"><div className="alert-panel alert-panel--danger page-load-error">{loadError}</div></div>;
+  }
 
   return (
     <div className="create-workout-page">

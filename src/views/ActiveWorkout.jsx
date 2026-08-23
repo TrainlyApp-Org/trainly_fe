@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api';
-import { Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Dumbbell, Play, RefreshCw, SkipBack, SkipForward, Square, User } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, Play, RefreshCw, SkipBack, SkipForward, Square, User } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { useParams, useNavigate } from 'react-router-dom';
+import PageLoader from '../components/PageLoader';
 
 function Stepper({ value, onChange, min = 0, placeholder }) {
   const change = (next) => onChange(Math.max(min, next));
@@ -30,6 +31,7 @@ export default function ActiveWorkout({
 
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   
   // Navigation & logging
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -129,6 +131,7 @@ export default function ActiveWorkout({
 
   const startWorkout = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const planData = sharedPlan || await api.getWorkoutDetails(workoutPlanId, workoutDayId);
 
@@ -220,6 +223,7 @@ export default function ActiveWorkout({
 
     } catch (err) {
       console.error('Error starting active workout:', err);
+      setLoadError(err.message || 'Impossibile inizializzare l’allenamento.');
     } finally {
       setLoading(false);
     }
@@ -378,14 +382,10 @@ export default function ActiveWorkout({
 
   // Helper values
   if (loading || !plan) {
-    return (
-      <div className="auth-screen auth-screen--centered">
-        <div className="shared-workout-empty-center">
-          <Dumbbell size={32} className="pulse-effect icon-pulse-orange" />
-          <p className="subtle-text">Inizializzazione sessione di allenamento...</p>
-        </div>
-      </div>
-    );
+    if (loadError) {
+      return <div className="alert-panel alert-panel--danger page-load-error">{loadError}</div>;
+    }
+    return <PageLoader label="Inizializzazione allenamento…" />;
   }
 
   const currentExercise = plan.exercises[currentExerciseIndex];

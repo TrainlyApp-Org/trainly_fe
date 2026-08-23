@@ -17,6 +17,7 @@ import DeviceExperienceNotice from './components/DeviceExperienceNotice';
 import ForgotPassword from './views/ForgotPassword';
 import ResetPassword from './views/ResetPassword';
 import LegalPage from './views/LegalPage';
+import PageLoader from './components/PageLoader';
 
 function RequireAuth({ user, children }) {
   if (!user) {
@@ -81,7 +82,7 @@ export default function App() {
   if (initializing) {
     return (
       <div className="app-container">
-        <div className="page-loading">Trainly...</div>
+        <PageLoader label="Avvio di Trainly…" />
       </div>
     );
   }

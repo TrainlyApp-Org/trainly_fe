@@ -262,6 +262,13 @@ export const api = {
     return handleResponse(res);
   },
 
+  async resetAdminAccountPassword(profileId) {
+    const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}/password/reset`, {
+      method: 'POST',
+    });
+    return handleResponse(res);
+  },
+
   // Exercises
   async getCategories() {
     const res = await fetch(`${API_BASE_URL}/exercises/categories`, {

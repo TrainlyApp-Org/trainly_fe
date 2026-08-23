@@ -4,6 +4,7 @@ import { User, Save, ArrowLeft, LockKeyhole, Star, Clock3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordInput from '../components/PasswordInput';
 import LegalFooter from '../components/LegalFooter';
+import PageLoader from '../components/PageLoader';
 
 export default function Profile({ onBack }) {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function Profile({ onBack }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -28,6 +30,7 @@ export default function Profile({ onBack }) {
 
   const fetchProfile = async () => {
     setLoading(true);
+    setLoadFailed(false);
     try {
       const data = await api.getProfile();
       const profile = data.profile;
@@ -40,6 +43,7 @@ export default function Profile({ onBack }) {
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
+      setLoadFailed(true);
       setMessage({ type: 'error', text: 'Errore nel caricamento del profilo.' });
     } finally {
       setLoading(false);
@@ -118,7 +122,9 @@ export default function Profile({ onBack }) {
       </div>
 
       {loading ? (
-        <div className="profile-info profile-info-text">Caricamento...</div>
+        <PageLoader label="Caricamento profilo…" />
+      ) : loadFailed ? (
+        <div className="profile-message profile-message--error">Errore nel caricamento del profilo.</div>
       ) : (
         <form onSubmit={handleSave} className="profile-form">
           <div className="profile-info">

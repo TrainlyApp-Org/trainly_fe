@@ -3,6 +3,7 @@ import { api } from '../api';
 import { Plus, Play, Trash2, Calendar, Dumbbell, User, LogOut, Pencil, Share2, Sparkles, Shield } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import WorkoutPlanViewer from '../components/WorkoutPlanViewer';
+import PageLoader from '../components/PageLoader';
 
 const FREE_WORKOUT_PLAN_LIMIT = 5;
 const WORKOUT_DESCRIPTION_MAX_LENGTH = 40;
@@ -22,6 +23,8 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
   const [planToStart, setPlanToStart] = useState(null);
   const [isPremium, setIsPremium] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [openingWorkout, setOpeningWorkout] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const [deleteModal, setDeleteModal] = useState({
     open: false,
@@ -34,6 +37,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const [plansData, profileData, adminData] = await Promise.all([
         api.getWorkouts(),
@@ -51,6 +55,7 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      setLoadError(err.message || 'Impossibile caricare la dashboard.');
     } finally {
       setLoading(false);
     }
@@ -121,15 +126,26 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
   };
 
   const chooseDay = async (plan) => {
+    setOpeningWorkout(true);
     try {
       const details = await api.getWorkoutDetails(plan.id);
       setPlanToStart(details);
     } catch (err) {
       alert(err.message || 'Impossibile aprire la scheda.');
+    } finally {
+      setOpeningWorkout(false);
     }
   };
 
   const workoutPlanLimitReached = !isPremium && workoutPlans.length >= FREE_WORKOUT_PLAN_LIMIT;
+
+  if (loading || openingWorkout) {
+    return <div className="dashboard-page"><PageLoader label={openingWorkout ? 'Apertura scheda…' : 'Caricamento dashboard…'} /></div>;
+  }
+
+  if (loadError) {
+    return <div className="dashboard-page"><div className="alert-panel alert-panel--danger page-load-error">{loadError}</div></div>;
+  }
 
   return (
     <div className="dashboard-page">
@@ -172,13 +188,6 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
 
       {/* Main Content Area */}
       <div className="dashboard-content">
-        {loading ? (
-          <div className="dashboard-loading">
-            <Dumbbell size={28} className="pulse-effect dashboard-loading-icon" />
-            Caricamento in corso...
-          </div>
-        ) : (
-          <>
             {workoutPlans.length === 0 ? (
               <div className="dashboard-empty-card">
                 <Dumbbell size={36} className="dashboard-loading-icon" />
@@ -256,8 +265,6 @@ export default function Dashboard({ onStartWorkout, onCreateWorkout, onEditWorko
                 </button>
               </div>
             )}
-          </>
-        )}
       </div>
       {planToStart && (
         <div className="dashboard-modal-overlay">

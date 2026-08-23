@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Dumbbell } from 'lucide-react';
 import { api } from '../api';
 import ActiveWorkout from './ActiveWorkout';
 import WorkoutPlanViewer from '../components/WorkoutPlanViewer';
 import { useParams } from 'react-router-dom';
+import PageLoader from '../components/PageLoader';
 
 export default function SharedWorkout({ shareId: propShareId }) {
   const { shareId: routeShareId } = useParams();
@@ -29,6 +29,6 @@ export default function SharedWorkout({ shareId: propShareId }) {
     return <ActiveWorkout sharedPlan={{ ...plan, activeDay, exercises: activeDay.exercises }} sharedShareId={shareId} onWorkoutComplete={closeWorkout} />;
   }
   if (error) return <div className="shared-workout-error">{error}</div>;
-  if (!plan) return <div className="shared-workout-empty"><Dumbbell className="pulse-effect" /> Caricamento scheda...</div>;
+  if (!plan) return <PageLoader label="Caricamento scheda…" />;
   return <WorkoutPlanViewer plan={plan} onStart={startWorkout} footerText="Se vuoi modificare il workout chiedi al tuo Personal Trainer." />;
 }
