@@ -1,5 +1,32 @@
 // Trainly Frontend API Client
 const API_BASE_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
+const DEFAULT_API_TIMEOUT_MS = 15000;
+
+const notifyServiceUnavailable = () => {
+  window.dispatchEvent(new CustomEvent('trainly:service-unavailable'));
+};
+
+const apiFetch = async (url, options = {}) => {
+  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal: externalSignal, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const forwardAbort = () => controller.abort(externalSignal?.reason);
+  if (externalSignal?.aborted) forwardAbort();
+  else externalSignal?.addEventListener('abort', forwardAbort, { once: true });
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...fetchOptions, signal: controller.signal });
+  } catch (error) {
+    if (!externalSignal?.aborted) notifyServiceUnavailable();
+    if (error?.name === 'AbortError' && !externalSignal?.aborted) {
+      throw new Error('Il server non ha risposto in tempo. Riprova tra qualche istante.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+    externalSignal?.removeEventListener('abort', forwardAbort);
+  }
+};
 
 let refreshPromise = null;
 
@@ -39,6 +66,7 @@ const handleResponse = async (response) => {
   }
 
   if (!response.ok) {
+    if ([502, 503, 504].includes(response.status)) notifyServiceUnavailable();
     throw new Error(
       data?.error || data?.message || 'Qualcosa è andato storto.'
     );
@@ -65,7 +93,7 @@ const refreshAccessToken = async () => {
   if (!refreshToken) throw new Error('Refresh token unavailable');
 
   refreshPromise = (async () => {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const response = await apiFetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -86,7 +114,7 @@ const refreshAccessToken = async () => {
 };
 
 const authenticatedFetch = async (url, options = {}) => {
-  const execute = () => fetch(url, {
+  const execute = () => apiFetch(url, {
     ...options,
     headers: {
       ...getHeaders(),
@@ -138,25 +166,19 @@ const saveAuth = (data)=>{
 
 export const api = {
   async checkHealth() {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 8000);
-    try {
-      const response = await fetch(`${API_BASE_URL}/health/live`, {
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        throw new Error(`Backend unavailable (${response.status})`);
-      }
-      return true;
-    } finally {
-      window.clearTimeout(timeout);
+    const response = await apiFetch(`${API_BASE_URL}/health/live`, {
+      cache: 'no-store',
+      timeoutMs: 8000,
+    });
+    if (!response.ok) {
+      throw new Error(`Backend unavailable (${response.status})`);
     }
+    return true;
   },
 
   // Auth & Profile
   async login(email, password) {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -169,7 +191,7 @@ export const api = {
   },
 
   async register(email, password, username, fullName, adultConfirmed, termsAccepted, privacyAcknowledged) {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, username, fullName, adultConfirmed, termsAccepted, privacyAcknowledged }),
@@ -182,7 +204,7 @@ export const api = {
   },
 
   async forgotPassword(email) {
-    const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -191,7 +213,7 @@ export const api = {
   },
 
   async resetPassword(accessToken, newPassword) {
-    const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    const res = await apiFetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessToken, newPassword }),
@@ -326,7 +348,7 @@ export const api = {
 
   // Exercises
   async getCategories() {
-    const res = await fetch(`${API_BASE_URL}/exercises/categories`, {
+    const res = await apiFetch(`${API_BASE_URL}/exercises/categories`, {
     });
     return handleResponse(res);
   },
@@ -385,12 +407,12 @@ export const api = {
   },
 
   async getSharedWorkout(shareId) {
-    const res = await fetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}`);
+    const res = await apiFetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}`);
     return handleResponse(res);
   },
 
   async saveSharedWorkoutSet(shareId, dayId, exerciseId, setIndex, weight, reps) {
-    const res = await fetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}/weight`, {
+    const res = await apiFetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}/weight`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dayId, exerciseId, setIndex, weight, reps }),
@@ -400,7 +422,7 @@ export const api = {
 
   async getSharedWorkoutSetValues(shareId, dayId) {
     const query = `?dayId=${encodeURIComponent(dayId)}`;
-    const res = await fetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}/values${query}`);
+    const res = await apiFetch(`${API_BASE_URL}/workouts/public/${encodeURIComponent(shareId)}/values${query}`);
     return handleResponse(res);
   },
 

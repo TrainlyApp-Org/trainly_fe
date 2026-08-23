@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { api } from './api';
 
@@ -20,7 +20,7 @@ import LegalPage from './views/LegalPage';
 import PageLoader from './components/PageLoader';
 import ServiceUnavailable from './components/ServiceUnavailable';
 
-const HEALTH_CHECK_INTERVAL_MS = 15000;
+const HEALTH_CHECK_INTERVAL_MS = 60000;
 
 function RequireAuth({ user, children }) {
   if (!user) {
@@ -33,6 +33,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [serviceStatus, setServiceStatus] = useState('checking');
+  const healthCheckInFlight = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,22 +49,28 @@ export default function App() {
   }, []);
 
   const checkServiceHealth = useCallback(async () => {
+    if (healthCheckInFlight.current) return;
     if (!navigator.onLine) {
       setServiceStatus('offline');
       return;
     }
 
+    healthCheckInFlight.current = true;
     try {
       await api.checkHealth();
       setServiceStatus('online');
     } catch {
       setServiceStatus(navigator.onLine ? 'maintenance' : 'offline');
+    } finally {
+      healthCheckInFlight.current = false;
     }
   }, []);
 
   useEffect(() => {
     checkServiceHealth();
-    const intervalId = window.setInterval(checkServiceHealth, HEALTH_CHECK_INTERVAL_MS);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') checkServiceHealth();
+    }, HEALTH_CHECK_INTERVAL_MS);
     const handleOffline = () => setServiceStatus('offline');
     const handleOnline = () => {
       setServiceStatus('checking');
@@ -72,15 +79,20 @@ export default function App() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') checkServiceHealth();
     };
+    const handleServiceUnavailable = () => {
+      setServiceStatus(navigator.onLine ? 'maintenance' : 'offline');
+    };
 
     window.addEventListener('offline', handleOffline);
     window.addEventListener('online', handleOnline);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('trainly:service-unavailable', handleServiceUnavailable);
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('trainly:service-unavailable', handleServiceUnavailable);
     };
   }, [checkServiceHealth]);
 
