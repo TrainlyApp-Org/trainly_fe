@@ -1,6 +1,6 @@
 // Trainly Frontend API Client
 const API_BASE_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
-const DEFAULT_API_TIMEOUT_MS = 15000;
+const DEFAULT_API_TIMEOUT_MS = 60000;
 
 const notifyServiceUnavailable = () => {
   window.dispatchEvent(new CustomEvent('trainly:service-unavailable'));
