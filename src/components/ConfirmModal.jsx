@@ -6,7 +6,9 @@ export default function ConfirmModal({
   confirmText = "Conferma",
   cancelText = "Annulla",
   onConfirm,
-  onCancel
+  onCancel,
+  loading = false,
+  danger = false
 }) {
   return (
     <div className="modal-overlay">
@@ -21,13 +23,15 @@ export default function ConfirmModal({
           <button
             onClick={onCancel}
             className="btn-secondary btn-secondary--block"
+            disabled={loading}
           >
             {cancelText}
           </button>
 
           <button
             onClick={onConfirm}
-            className="btn-primary btn-primary--block"
+            className={danger ? 'button-danger confirm-modal-danger-button' : 'btn-primary btn-primary--block'}
+            disabled={loading}
           >
             {confirmText}
           </button>

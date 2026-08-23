@@ -3160,6 +3160,21 @@ button.btn-primary.profile-billing-button {
   user-select: text;
 }
 
+.profile-danger-zone {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(239, 68, 68, .055);
+  border: 1px solid rgba(239, 68, 68, .24);
+  border-radius: 16px;
+}
+.profile-danger-zone__heading { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; color: var(--accent-red); }
+.profile-danger-zone__heading svg { flex: 0 0 auto; margin-top: 2px; }
+.profile-danger-zone__heading h2 { color: var(--color-primary); font-size: 17px; }
+.profile-danger-zone__heading p { margin-top: 4px; color: var(--color-secondary); font-size: 12px; line-height: 1.45; }
+.profile-delete-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; font: inherit; font-weight: 700; }
+.confirm-modal-danger-button { min-height: 44px; font: inherit; font-weight: 700; }
+.confirm-modal-danger-button:disabled { opacity: .55; cursor: not-allowed; }
+
 .mb-8 {
   margin-bottom: 8px;
 }
@@ -3945,13 +3960,16 @@ button.icon-button--muted {
 
 
 .modal-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 
 .modal-actions button {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
 }
 
 /* Live workout: fit between the session header and the exercise drawer */
@@ -4055,6 +4073,15 @@ button.icon-button--muted {
   border-radius: 14px;
 }
 .admin-confirmation-modal .modal-actions { margin-top: 4px; }
+.admin-delete-confirmation-field { margin-bottom: 20px; }
+.admin-delete-confirmation-field label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
 
 /* Desktop administration */
 .app-container--admin {
@@ -4161,6 +4188,12 @@ button.icon-button--muted {
   border-color: var(--border-color);
 }
 .admin-button--premium { color: #1c1208; }
+.admin-button--danger {
+  color: #fecaca;
+  background: rgba(239, 68, 68, .14);
+  border-color: rgba(239, 68, 68, .32);
+}
+.admin-button--danger:hover { background: rgba(239, 68, 68, .2); border-color: rgba(239, 68, 68, .48); }
 .admin-button:hover,
 .admin-row-button:hover { transform: translateY(-1px); }
 .admin-button--secondary:hover { border-color: rgba(255, 255, 255, .2); }
@@ -4339,6 +4372,23 @@ button.icon-button--muted {
 .admin-detail-heading > strong { display: grid; place-items: center; min-width: 38px; height: 32px; padding: 0 10px; color: var(--accent-orange); background: rgba(255,122,0,.1); border-radius: 9px; }
 .admin-workout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; max-width: 1440px; margin: 0 auto; }
 .admin-workout-grid > .admin-panel { grid-column: 1 / -1; width: 100%; }
+.admin-account-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1440px;
+  margin: 30px auto 0;
+  padding: 22px 24px;
+  background: rgba(239, 68, 68, .055);
+  border: 1px solid rgba(239, 68, 68, .24);
+  border-radius: 16px;
+}
+.admin-account-danger-zone > div { display: flex; align-items: flex-start; gap: 13px; }
+.admin-account-danger-zone__icon { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; color: var(--accent-red); background: rgba(239, 68, 68, .1); border-radius: 11px; }
+.admin-account-danger-zone h2 { font-size: 18px; }
+.admin-account-danger-zone p { max-width: 760px; margin-top: 3px; color: var(--color-secondary); font-size: 13px; line-height: 1.45; }
+.admin-account-danger-zone > .admin-button { flex: 0 0 auto; }
 .admin-workout-title { align-items: flex-start; justify-content: space-between; gap: 16px; }
 .admin-workout-title h3 { font-size: 18px; }
 .admin-workout-title p { margin-top: 2px; color: var(--color-secondary); font-size: 13px; }
@@ -4402,6 +4452,8 @@ button.icon-button--muted {
   .admin-profile-card { align-items: stretch; flex-direction: column; }
   .admin-profile-actions { align-items: flex-start; flex-direction: column; }
   .admin-workout-grid { grid-template-columns: 1fr; }
+  .admin-account-danger-zone { align-items: stretch; flex-direction: column; }
+  .admin-account-danger-zone > .admin-button { width: 100%; }
 }
 
 /* Installed web app: iOS reports a layout viewport shorter than the physical
@@ -4447,4 +4499,262 @@ html.is-standalone .bottom-sheet {
   position: absolute;
   bottom: 0;
   height: calc(var(--drawer-height, 68px) + env(safe-area-inset-bottom));
+}
+
+/* Tablet layout: iPad and similarly sized touch screens */
+@media (min-width: 700px) and (max-width: 1366px) {
+  .app-container {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .phone-frame {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .phone-frame::before { display: none; }
+
+  .phone-viewport:not(.phone-viewport--admin) {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .home-page,
+  .auth-screen,
+  .login-screen,
+  .register-screen {
+    padding-right: max(48px, env(safe-area-inset-right));
+    padding-left: max(48px, env(safe-area-inset-left));
+  }
+
+  .home-page > *,
+  .login-screen > .auth-login-content,
+  .register-screen > :not(.auth-register-back) {
+    width: 100%;
+    max-width: 680px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .login-screen > .auth-login-back,
+  .register-screen > .auth-register-back {
+    top: 24px;
+    left: max(48px, env(safe-area-inset-left));
+    width: 44px;
+    height: 44px;
+    max-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .dashboard-header {
+    padding: 30px max(40px, 6vw) 20px;
+  }
+
+  .dashboard-promo-ad {
+    margin: 8px max(40px, 6vw) 20px;
+    padding: 16px 18px;
+  }
+
+  .dashboard-promo-ad__content strong { font-size: 15px; }
+  .dashboard-promo-ad__content p { font-size: 12px; }
+
+  .dashboard-content {
+    padding: 0 max(40px, 6vw) calc(100px + env(safe-area-inset-bottom));
+  }
+
+  .dashboard-plan-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 18px;
+  }
+
+  .dashboard-card { height: 200px; }
+  .dashboard-card-title { font-size: 20px; }
+  .dashboard-empty-card { max-width: 760px; margin: 28px auto 0; }
+  .dashboard-fixed-action { right: max(40px, 6vw); left: auto; width: min(320px, calc(100% - 80px)); }
+
+  .dashboard-modal-panel,
+  .shared-workout-page,
+  .shared-workout-day-page {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px max(36px, 5vw) calc(44px + env(safe-area-inset-bottom));
+  }
+
+  .shared-workout-title { font-size: 36px; }
+  .shared-workout-day-card:not(button) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .shared-workout-day-card button.shared-workout-day-card {
+    min-height: 78px;
+    padding: 20px 24px;
+    border-radius: 18px;
+  }
+  .shared-workout-day-card button.shared-workout-day-card strong { font-size: 16px; }
+  .shared-workout-day-card button.shared-workout-day-card small { font-size: 13px; }
+  .shared-workout-day-card button.shared-workout-day-card .shared-workout-day-content {
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    height: 100%;
+    text-align: left;
+  }
+  .shared-workout-flex {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .profile-page {
+    padding: 32px max(44px, 7vw) calc(48px + env(safe-area-inset-bottom));
+  }
+
+  .profile-header,
+  .profile-form {
+    width: 100%;
+    max-width: 820px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .profile-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .profile-info,
+  .profile-password-panel,
+  .profile-save-button,
+  .profile-danger-zone,
+  .profile-form > .legal-footer {
+    grid-column: 1 / -1;
+  }
+
+  .profile-info { margin-bottom: 4px; }
+  .profile-billing-panel,
+  .profile-form > .mb-24 { height: 100%; margin-bottom: 0; }
+  .profile-password-panel { width: 100%; margin: 0; }
+  .profile-save-button { width: min(100%, 420px); margin: 24px auto 0; }
+  .profile-danger-zone { margin-top: 0; }
+
+  .create-workout-header {
+    padding: 22px max(40px, 6vw);
+  }
+
+  .create-workout-title { font-size: 24px; }
+  .create-workout-status-button { min-width: 130px; min-height: 46px; }
+
+  .create-workout-content {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px max(40px, 5vw) calc(56px + env(safe-area-inset-bottom));
+  }
+
+  .create-workout-section { margin-bottom: 30px; }
+  .create-workout-params { flex-direction: row; gap: 18px; }
+  .create-workout-section > .flex-column-gap {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .create-workout-section > .flex-column-gap > .create-workout-add-button { grid-column: 1 / -1; }
+
+  .create-workout-modal-backdrop {
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: rgba(3, 7, 18, .82);
+    backdrop-filter: blur(8px);
+  }
+
+  .create-workout-modal {
+    width: min(760px, 100%);
+    height: min(820px, 100%);
+    overflow: hidden;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+  }
+
+  .exercise-selector {
+    display: block;
+  }
+
+  .exercise-selector > .flex-column-gap,
+  .exercise-selector-item {
+    width: 100%;
+  }
+
+  .active-workout-header { padding: 16px max(32px, 5vw); }
+  .session-title { font-size: 22px; }
+  .active-workout-content {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 48px calc(118px + env(safe-area-inset-bottom));
+  }
+  .exercise-title { font-size: 32px; }
+  .exercise-set-card--single { min-height: 280px; padding: 28px; }
+  .exercise-set-card--single .set-controls-row { flex-direction: row; gap: 40px; }
+  .exercise-set-card--single .param-group { width: auto; min-width: 190px; }
+  .exercise-set-card--single .stepper-group { grid-template-columns: 46px 110px 46px; }
+  .exercise-set-card--single .stepper-button { width: 46px; height: 50px; }
+  .exercise-set-card--single .stepper-input { min-height: 50px; }
+  .bottom-sheet { padding: 0 32px; }
+  .bottom-sheet__inner { width: min(100%, 720px); max-width: 720px; }
+
+  .admin-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-header { align-items: center; }
+  .admin-header-actions .admin-button { width: auto; padding: 0 16px; font-size: inherit; }
+  .admin-profile-card { flex-direction: row; align-items: center; }
+  .admin-profile-actions { flex-direction: row; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+}
+
+@media (min-width: 1000px) and (max-width: 1366px) {
+  .dashboard-plan-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-card { height: 215px; }
+  .create-workout-section > .flex-column-gap { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 700px) and (max-width: 1366px) and (min-height: 850px) and (orientation: portrait) {
+  .home-page {
+    display: grid;
+    grid-template-rows: auto minmax(24px, 1fr) auto auto minmax(24px, 1fr) auto;
+    height: 100%;
+  }
+
+  .home-hero { grid-row: 1; }
+  .home-share-panel { grid-row: 3; }
+  .home-trainer-access { grid-row: 4; }
+  .home-page > .legal-footer {
+    grid-row: 6;
+    align-self: end;
+  }
+
+  .login-screen > .legal-footer {
+    position: absolute;
+    right: max(48px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: max(48px, env(safe-area-inset-left));
+    width: auto;
+    padding-bottom: 8px;
+  }
 }

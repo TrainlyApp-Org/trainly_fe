@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
-import { AlertTriangle, ArrowLeft, CreditCard, Dumbbell, KeyRound, Shield, Star, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CreditCard, Dumbbell, KeyRound, Shield, Star, Trash2, UserRound } from 'lucide-react';
 import PageLoader from '../components/PageLoader';
 
 export default function AdminAccountDetails({ onBack }) {
@@ -12,6 +12,7 @@ export default function AdminAccountDetails({ onBack }) {
   const [updating, setUpdating] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState('manual');
+  const [deleteConfirmationValue, setDeleteConfirmationValue] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -53,6 +54,7 @@ export default function AdminAccountDetails({ onBack }) {
 
   const openConfirmation = action => {
     setConfirmationAction(action);
+    setDeleteConfirmationValue('');
     setConfirmationOpen(true);
   };
 
@@ -70,6 +72,24 @@ export default function AdminAccountDetails({ onBack }) {
       setUpdating(false);
     }
   };
+
+  const deleteAccount = async () => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.deleteAdminAccount(profileId);
+      setConfirmationOpen(false);
+      onBack();
+    } catch (err) {
+      setError(err.message || 'Impossibile eliminare l’account.');
+      setConfirmationOpen(false);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const deletionConfirmationText = account?.username || account?.id || '';
 
   return <main className="admin-dashboard">
     <header className="admin-header">
@@ -112,20 +132,47 @@ export default function AdminAccountDetails({ onBack }) {
           {workout.days?.map(day => <div className="admin-workout-day" key={day.id}><strong>{day.name}</strong>{day.exercises?.map(ex => <div className="admin-exercise" key={ex.id}><span>{ex.name}</span><small>{ex.sets} × {ex.reps} · recupero {ex.restTime}s</small></div>)}</div>)}
         </article>)}
       </section>
+      <section className="admin-account-danger-zone">
+        <div>
+          <span className="admin-account-danger-zone__icon"><AlertTriangle size={21} /></span>
+          <div><h2>Elimina account</h2><p>Annulla immediatamente l’eventuale abbonamento ed elimina definitivamente profilo, schede, allenamenti ed esercizi personalizzati.</p></div>
+        </div>
+        <button className="admin-button admin-button--danger" onClick={() => openConfirmation('delete-account')}>
+          <Trash2 size={17} /> Elimina definitivamente
+        </button>
+      </section>
     </>}
     {confirmationOpen && account && <div className="modal-overlay" onClick={() => !updating && setConfirmationOpen(false)}>
       <div className="modal-card admin-confirmation-modal" role="alertdialog" aria-modal="true" aria-labelledby="account-confirmation-title" onClick={event => event.stopPropagation()}>
         <div className="admin-confirmation-icon"><AlertTriangle size={25} /></div>
-        <h2 id="account-confirmation-title">{confirmationAction === 'cancel-subscription' ? 'Disattiva rinnovo' : confirmationAction === 'reset-password' ? 'Reimposta password' : 'Conferma modifica account'}</h2>
+        <h2 id="account-confirmation-title">{confirmationAction === 'delete-account' ? 'Eliminare definitivamente l’account?' : confirmationAction === 'cancel-subscription' ? 'Disattiva rinnovo' : confirmationAction === 'reset-password' ? 'Reimposta password' : 'Conferma modifica account'}</h2>
         <p>{confirmationAction === 'cancel-subscription'
           ? <>Vuoi disattivare il rinnovo Stripe dell’account <strong>{account.full_name || account.username || 'selezionato'}</strong>? L’utente manterrà Premium fino alla fine del periodo già pagato.</>
           : confirmationAction === 'reset-password'
             ? <>Vuoi reimpostare la password di <strong>{account.full_name || account.username || 'questo account'}</strong> a <code>{account.username}_ty</code>?</>
-          : <>Vuoi davvero {account.is_premium ? 'passare a Free' : 'promuovere a Premium'} l’account <strong>{account.full_name || account.username || 'selezionato'}</strong>?</>}
+            : confirmationAction === 'delete-account'
+              ? <>L’operazione è irreversibile. Per confermare, digita lo username <strong>{deletionConfirmationText}</strong>.</>
+              : <>Vuoi davvero {account.is_premium ? 'passare a Free' : 'promuovere a Premium'} l’account <strong>{account.full_name || account.username || 'selezionato'}</strong>?</>}
         </p>
+        {confirmationAction === 'delete-account' && <div className="admin-delete-confirmation-field">
+          <label htmlFor="admin-delete-confirmation">USERNAME</label>
+          <input
+            id="admin-delete-confirmation"
+            type="text"
+            autoComplete="off"
+            value={deleteConfirmationValue}
+            onChange={event => setDeleteConfirmationValue(event.target.value)}
+            placeholder={deletionConfirmationText}
+            disabled={updating}
+          />
+        </div>}
         <div className="modal-actions">
           <button disabled={updating} className="admin-button admin-button--secondary" onClick={() => setConfirmationOpen(false)}>Annulla</button>
-          <button disabled={updating} className="admin-button" onClick={confirmationAction === 'cancel-subscription' ? cancelSubscription : confirmationAction === 'reset-password' ? resetPassword : togglePremium}>{updating ? 'Aggiornamento…' : 'Conferma'}</button>
+          <button
+            disabled={updating || (confirmationAction === 'delete-account' && deleteConfirmationValue.trim() !== deletionConfirmationText)}
+            className={`admin-button ${confirmationAction === 'delete-account' ? 'admin-button--danger' : ''}`}
+            onClick={confirmationAction === 'delete-account' ? deleteAccount : confirmationAction === 'cancel-subscription' ? cancelSubscription : confirmationAction === 'reset-password' ? resetPassword : togglePremium}
+          >{updating ? (confirmationAction === 'delete-account' ? 'Eliminazione…' : 'Aggiornamento…') : confirmationAction === 'delete-account' ? 'Elimina account' : 'Conferma'}</button>
         </div>
       </div>
     </div>}

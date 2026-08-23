@@ -216,6 +216,25 @@ export const api = {
     return handleResponse(res);
   },
 
+  async deleteAccount() {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/auth/me`, {
+        method: 'DELETE',
+        signal: controller.signal,
+      });
+      return await handleResponse(res);
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new Error('Il server non ha risposto in tempo. Verifica la connessione e riprova.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  },
+
   async changePassword(currentPassword, newPassword) {
     const res = await authenticatedFetch(`${API_BASE_URL}/auth/password`, {
       method: 'PUT',
@@ -284,6 +303,25 @@ export const api = {
       method: 'POST',
     });
     return handleResponse(res);
+  },
+
+  async deleteAdminAccount(profileId) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/admin/accounts/${profileId}`, {
+        method: 'DELETE',
+        signal: controller.signal,
+      });
+      return await handleResponse(res);
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new Error('Il server non ha risposto in tempo. Verifica la connessione e riprova.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   },
 
   // Exercises

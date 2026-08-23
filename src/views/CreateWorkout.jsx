@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageLoader from '../components/PageLoader';
 
 const WORKOUT_DESCRIPTION_MAX_LENGTH = 40;
+const ALL_CATEGORIES_ID = 'all';
 
 const generateUuid = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -44,7 +45,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
 
   // Selector state
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedCategoryTab, setSelectedCategoryTab] = useState('');
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState(ALL_CATEGORIES_ID);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Custom exercise form state
@@ -106,7 +107,6 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
       setCategories(catsData.categories || []);
       setExercises(exData.exercises || []);
       if (catsData.categories && catsData.categories.length > 0) {
-        setSelectedCategoryTab(catsData.categories[0].id);
         setCustomCategory(catsData.categories[0].id);
       }
     } catch (err) {
@@ -187,7 +187,7 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
   // Filter exercises based on search and category
   const filteredExercises = exercises.filter(ex => {
     const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = ex.categoryId === selectedCategoryTab;
+    const matchesCategory = selectedCategoryTab === ALL_CATEGORIES_ID || ex.categoryId === selectedCategoryTab;
     return matchesSearch && matchesCategory;
   });
 
@@ -425,6 +425,13 @@ export default function CreateWorkout({ workoutId: propWorkoutId, onBack, onSave
             ) : (
               <>
                 <div className="create-workout-category-list">
+                  <button
+                    onClick={() => setSelectedCategoryTab(ALL_CATEGORIES_ID)}
+                    className={`category-pill ${selectedCategoryTab === ALL_CATEGORIES_ID ? 'category-pill--active' : 'category-pill--inactive'}`}
+                    type="button"
+                  >
+                    Tutti
+                  </button>
                   {categories.map(cat => (
                     <button
                       key={cat.id}

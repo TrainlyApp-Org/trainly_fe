@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { User, Save, ArrowLeft, LockKeyhole, Star, Clock3 } from 'lucide-react';
+import { User, Save, ArrowLeft, LockKeyhole, Star, Clock3, Trash2, TriangleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PasswordInput from '../components/PasswordInput';
 import LegalFooter from '../components/LegalFooter';
 import PageLoader from '../components/PageLoader';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function Profile({ onBack }) {
   const navigate = useNavigate();
@@ -23,6 +24,9 @@ export default function Profile({ onBack }) {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
   const [loadFailed, setLoadFailed] = useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -111,6 +115,20 @@ export default function Profile({ onBack }) {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    setDeleteError('');
+    try {
+      await api.deleteAccount();
+      api.logout();
+      window.location.assign('/');
+    } catch (err) {
+      setDeleteError(err.message || 'Impossibile eliminare l’account. Riprova più tardi.');
+      setDeleteConfirmationOpen(false);
+      setDeletingAccount(false);
+    }
+  };
+
   return (
     <div className="profile-page">
       {/* Header */}
@@ -170,6 +188,11 @@ export default function Profile({ onBack }) {
                 required
               />
             </div>
+
+            <button type="submit" className="btn-primary profile-save-button" disabled={saving}>
+              <Save size={18} />
+              {saving ? 'Salvataggio...' : 'Salva Modifiche'}
+            </button>
           </div>
 
           <div className="glass-panel profile-billing-panel">
@@ -251,12 +274,29 @@ export default function Profile({ onBack }) {
             </button>
           </div>
 
-          <button type="submit" className="btn-primary profile-save-button" disabled={saving}>
-            <Save size={18} />
-            {saving ? 'Salvataggio...' : 'Salva Modifiche'}
-          </button>
+          <section className="profile-danger-zone">
+            <div className="profile-danger-zone__heading">
+              <TriangleAlert size={20} aria-hidden="true" />
+              <div><h2>Elimina account</h2><p>Questa operazione è definitiva e non può essere annullata.</p></div>
+            </div>
+            {deleteError && <div className="profile-message profile-message--error">{deleteError}</div>}
+            <button type="button" className="button-danger profile-delete-button" onClick={() => setDeleteConfirmationOpen(true)}>
+              <Trash2 size={18} /> Elimina definitivamente l’account
+            </button>
+          </section>
           <LegalFooter />
         </form>
+      )}
+      {deleteConfirmationOpen && (
+        <ConfirmModal
+          title="Eliminare definitivamente l’account?"
+          message="L’abbonamento verrà annullato immediatamente. Tutte le schede, gli allenamenti, gli esercizi personalizzati e i dati del profilo verranno eliminati in modo permanente."
+          confirmText={deletingAccount ? 'Eliminazione…' : 'Sì, elimina account'}
+          onConfirm={handleDeleteAccount}
+          onCancel={() => setDeleteConfirmationOpen(false)}
+          loading={deletingAccount}
+          danger
+        />
       )}
     </div>
   );
