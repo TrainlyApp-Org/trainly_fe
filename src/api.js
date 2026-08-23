@@ -137,6 +137,23 @@ const saveAuth = (data)=>{
 };
 
 export const api = {
+  async checkHealth() {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`${API_BASE_URL}/health/live`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Backend unavailable (${response.status})`);
+      }
+      return true;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  },
+
   // Auth & Profile
   async login(email, password) {
     const res = await fetch(`${API_BASE_URL}/auth/login`, {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { api } from './api';
 
@@ -18,6 +18,9 @@ import ForgotPassword from './views/ForgotPassword';
 import ResetPassword from './views/ResetPassword';
 import LegalPage from './views/LegalPage';
 import PageLoader from './components/PageLoader';
+import ServiceUnavailable from './components/ServiceUnavailable';
+
+const HEALTH_CHECK_INTERVAL_MS = 15000;
 
 function RequireAuth({ user, children }) {
   if (!user) {
@@ -29,6 +32,7 @@ function RequireAuth({ user, children }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
+  const [serviceStatus, setServiceStatus] = useState('checking');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,6 +46,43 @@ export default function App() {
     }
     setInitializing(false);
   }, []);
+
+  const checkServiceHealth = useCallback(async () => {
+    if (!navigator.onLine) {
+      setServiceStatus('offline');
+      return;
+    }
+
+    try {
+      await api.checkHealth();
+      setServiceStatus('online');
+    } catch {
+      setServiceStatus(navigator.onLine ? 'maintenance' : 'offline');
+    }
+  }, []);
+
+  useEffect(() => {
+    checkServiceHealth();
+    const intervalId = window.setInterval(checkServiceHealth, HEALTH_CHECK_INTERVAL_MS);
+    const handleOffline = () => setServiceStatus('offline');
+    const handleOnline = () => {
+      setServiceStatus('checking');
+      checkServiceHealth();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkServiceHealth();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [checkServiceHealth]);
 
   // Supabase may fall back to the configured Site URL while keeping the
   // recovery session in the URL fragment. Route that session to the reset UI.
@@ -79,10 +120,28 @@ export default function App() {
     navigate(`/workout/active/${planId}/${dayId}`);
   };
 
-  if (initializing) {
+  if (initializing || serviceStatus === 'checking') {
     return (
       <div className="app-container">
-        <PageLoader label="Avvio di Trainly…" />
+        <PageLoader label={serviceStatus === 'checking' ? 'Verifica del servizio…' : 'Avvio di Trainly…'} />
+      </div>
+    );
+  }
+
+  if (serviceStatus !== 'online') {
+    return (
+      <div className="app-container">
+        <div className="phone-frame">
+          <div className="phone-viewport">
+            <ServiceUnavailable
+              offline={serviceStatus === 'offline'}
+              onRetry={() => {
+                setServiceStatus('checking');
+                checkServiceHealth();
+              }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
